@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(uuid())
+  name       String
+  email      String     @unique
+  password   String
+  role       String     @default("ASESOR") // "ADMIN" o "ASESOR"
+  phone      String?
+  avatarUrl  String?
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  contacts   Contact[]  @relation("AssignedContacts")
+  proposals  Proposal[] @relation("AssignedProposals")
+  activities Activity[]
+}
+
+model Company {
+  id         String     @id @default(uuid())
+  name       String     // Nombre comercial (ej. Café Monte Alto)
+  legalName  String?    // Razón social completa
+  taxId      String?    // RTN / Identificación tributaria
+  industry   String?    // Industria o sector (ej. Alimentos, Farmacéutica, Inmobiliaria)
+  website    String?
+  phone      String?
+  email      String?
+  address    String?
+  city       String?    @default("San Pedro Sula")
+  country    String?    @default("Honduras")
+  logoUrl    String?    // Logotipo de la empresa
+  notes      String?    // Observaciones o perfil institucional
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  contacts   Contact[]
+  proposals  Proposal[]
+}
+
+model Contact {
+  id               String     @id @default(uuid())
+  name             String     // Nombre de la persona (ej. Lic. Mariana Zelaya)
+  jobTitle         String?    // Cargo / Puesto (ej. Gerente de Mercadeo)
+  companyId        String?
+  company          Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyName      String?    // Nombre de empresa en texto (compatibilidad y rápido acceso)
+  avatarUrl        String?    // Fotografía de la persona
+  email            String?
+  phone            String     // WhatsApp directo
+  notes            String?    // Notas sobre la relación o antecedentes
+  nextFollowUp     DateTime?  // Fecha del próximo contacto
+  nextFollowUpTask String?    // Tarea o motivo del contacto
+  assignedToId     String?
+  assignedTo       User?      @relation("AssignedContacts", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  proposals        Proposal[]
+  activities       Activity[]
+}
+
+model Proposal {
+  id           String     @id @default(uuid())
+  title        String     // ej. "Rediseño Web + Catálogo" o "Branding 2026"
+  amount       Float      @default(0) // Valor numérico
+  currency     String     @default("USD")
+  stage        String     @default("ENVIADA") // "NUEVO", "CONTACTADO", "PROPUESTA", "NEGOCIACION", "GANADO", "PERDIDO"
+  notes        String?    // Alcances o detalles de la propuesta
+  contactId    String
+  contact      Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  companyId    String?
+  company      Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo   User?      @relation("AssignedProposals", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  activities   Activity[]
+}
+
+model Activity {
+  id          String    @id @default(uuid())
+  type        String    // LLAMADA, WHATSAPP, REUNION, CORREO, NOTA, VENTA_CERRADA, CAMBIO_ETAPA
+  description String
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  proposalId  String?
+  proposal    Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+}
+
+model Setting {
+  id                 String   @id @default("default")
+  companyName        String   @default("PixelMedia • Inversiones Publimatec")
+  currency           String   @default("USD") // "USD", "HNL", "EUR"
+  currencySymbol     String   @default("$")   // "$", "L", "€"
+  taxRate            Float    @default(15.0)  // ISV 15%
+  phone              String?  @default("+504 9900-1122")
+  email              String?  @default("contacto@pixelmediahn.com")
+  address            String?  @default("San Pedro Sula, Cortés, Honduras")
+  logoUrl            String?
+  monthlySalesTarget Float    @default(15000)
+  updatedAt          DateTime @updatedAt
+}

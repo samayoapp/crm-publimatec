@@ -1,0 +1,51 @@
+services:
+  publimatec_crm_db:
+    image: postgres:16-alpine
+    container_name: publimatec_crm_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: publimatec_user
+      POSTGRES_PASSWORD: publimatec_crm_password_2026
+      POSTGRES_DB: publimatec_crm
+    ports:
+      - "5438:5432"
+    volumes:
+      - publimatec_crm_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U publimatec_user -d publimatec_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - publimatec_network
+
+  publimatec_crm_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: publimatec_crm_app
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    environment:
+      - DATABASE_URL=postgresql://publimatec_user:publimatec_crm_password_2026@publimatec_crm_db:5432/publimatec_crm?schema=public
+      - JWT_SECRET=pixelmedia_publimatec_secret_key_crm_2026_super_secure
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      publimatec_crm_db:
+        condition: service_healthy
+    networks:
+      - publimatec_network
+
+volumes:
+  publimatec_crm_data:
+    driver: local
+
+networks:
+  publimatec_network:
+    driver: bridge
