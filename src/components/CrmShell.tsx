@@ -17,6 +17,7 @@ interface CrmShellProps {
 
 export default function CrmShell({ user, children }: CrmShellProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleSaved = () => {
     // Dispatch custom event or reload current page
@@ -25,15 +26,20 @@ export default function CrmShell({ user, children }: CrmShellProps) {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 transition-colors">
-      <Sidebar user={user} />
+      <Sidebar
+        user={user}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar
           title="PixelMedia CRM"
           subtitle="Inversiones Publimatec S.A. de C.V."
           user={user}
           onNewLeadClick={() => setIsModalOpen(true)}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto min-w-0">
           {children}
         </main>
       </div>

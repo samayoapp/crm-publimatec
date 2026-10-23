@@ -158,7 +158,7 @@ export default function PipelinePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+          <div className="flex items-center gap-2 self-end md:self-auto shrink-0 flex-wrap sm:flex-nowrap">
             {/* Scroll navigation controls */}
             <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
               <button
@@ -187,10 +187,11 @@ export default function PipelinePage() {
                 setEditingProposal(null);
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all"
             >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Oportunidad / Propuesta</span>
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Nueva Oportunidad / Propuesta</span>
+              <span className="sm:hidden">+ Oportunidad</span>
             </button>
           </div>
         </div>
