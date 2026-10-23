@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Kanban,
@@ -21,6 +21,8 @@ import {
   Table2,
   Filter,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -39,6 +41,16 @@ export default function PipelinePage() {
   // Filters
   const [search, setSearch] = useState('');
   const [selectedAdvisor, setSelectedAdvisor] = useState('');
+
+  // Horizontal scroll ref & controls
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollBoard = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -340 : 340;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const fetchProposals = () => {
     let url = '/api/proposals?';
@@ -146,16 +158,41 @@ export default function PipelinePage() {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setEditingProposal(null);
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all self-end md:self-auto shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nueva Oportunidad / Propuesta</span>
-          </button>
+          <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+            {/* Scroll navigation controls */}
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+              <button
+                type="button"
+                onClick={() => scrollBoard('left')}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Desplazar hacia la izquierda"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 px-1 select-none">
+                Desplazar
+              </span>
+              <button
+                type="button"
+                onClick={() => scrollBoard('right')}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Desplazar hacia la derecha"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setEditingProposal(null);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Oportunidad / Propuesta</span>
+            </button>
+          </div>
         </div>
 
         {/* Tier 2: Search & Advisor Filter Bar */}
@@ -205,8 +242,11 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Kanban Board with ALL 6 STAGES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3.5 items-start overflow-x-auto pb-6">
+      {/* Kanban Board with ALL 6 STAGES - Clean Horizontal Scroll with comfortable column width */}
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 px-1 kanban-scrollbar scroll-smooth"
+      >
         {STAGE_KEYS.map((stageKey, colIndex) => {
           const config = STAGES[stageKey];
           const stageProps = proposals.filter((p) => matchStage(p.stage, stageKey));
@@ -216,7 +256,7 @@ export default function PipelinePage() {
           return (
             <div
               key={stageKey}
-              className={`bg-slate-100/70 dark:bg-[#0c1220] rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col min-w-[260px] border-t-[3px] ${config.headerBorder} transition-colors`}
+              className={`w-[290px] min-w-[290px] xl:w-[310px] xl:min-w-[310px] shrink-0 bg-slate-100/70 dark:bg-[#0c1220] rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col border-t-[3px] ${config.headerBorder} transition-colors`}
             >
               {/* Column Header */}
               <div className="p-3 border-b border-slate-200 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/40 rounded-t-xl flex items-center justify-between">
