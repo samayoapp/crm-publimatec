@@ -13,17 +13,27 @@ async function main() {
   await prisma.company.deleteMany({});
   await prisma.user.deleteMany({});
 
-  const hashedAdminPassword = await bcrypt.hash('admin123', 10);
-  const hashedSalesPassword = await bcrypt.hash('ventas123', 10);
+  const defaultPassword = await bcrypt.hash('abc123', 10);
 
   // 1. Usuarios del CRM
   const admin = await prisma.user.create({
     data: {
       name: 'Dirección Publimatec',
       email: 'admin@pixelmediahn.com',
-      password: hashedAdminPassword,
+      password: defaultPassword,
       role: 'ADMIN',
       phone: '+504 9900-1122',
+      active: true,
+    },
+  });
+
+  const allan = await prisma.user.create({
+    data: {
+      name: 'Allan Samayoa',
+      email: 'allan.samayoa@gmail.com',
+      password: defaultPassword,
+      role: 'ADMIN',
+      phone: '+504 9900-0000',
       active: true,
     },
   });
@@ -32,7 +42,7 @@ async function main() {
     data: {
       name: 'Carlos Mendoza',
       email: 'carlos.ventas@pixelmediahn.com',
-      password: hashedSalesPassword,
+      password: defaultPassword,
       role: 'ASESOR',
       phone: '+504 9888-2233',
       active: true,
@@ -43,7 +53,7 @@ async function main() {
     data: {
       name: 'Sofía Reyes',
       email: 'sofia.ventas@pixelmediahn.com',
-      password: hashedSalesPassword,
+      password: defaultPassword,
       role: 'ASESOR',
       phone: '+504 9777-3344',
       active: true,
