@@ -10,6 +10,7 @@ async function main() {
   await prisma.activity.deleteMany({});
   await prisma.proposal.deleteMany({});
   await prisma.contact.deleteMany({});
+  await prisma.company.deleteMany({});
   await prisma.user.deleteMany({});
 
   const hashedAdminPassword = await bcrypt.hash('admin123', 10);
@@ -51,11 +52,106 @@ async function main() {
 
   console.log('✅ Usuarios creados: Admin y 2 Asesores.');
 
-  // 2. Contactos (Personas & Relaciones)
+  // 2. Empresas Corporativas
+  const comp1 = await prisma.company.create({
+    data: {
+      name: 'Distribuidora del Caribe',
+      legalName: 'Distribuidora del Caribe S.A. de C.V.',
+      taxId: '05019001234567',
+      industry: 'Distribución & Logística',
+      phone: '+504 2550-1122',
+      email: 'contacto@distribuidoradelcaribe.hn',
+      address: 'Barrio Guamilito, 7ma Avenida',
+      city: 'San Pedro Sula',
+      country: 'Honduras',
+      notes: 'Distribuidor líder de productos de consumo masivo en la zona norte de Honduras.',
+    },
+  });
+
+  const comp2 = await prisma.company.create({
+    data: {
+      name: 'Café Monte Alto',
+      legalName: 'Café Monte Alto Exportadores S. de R.L.',
+      taxId: '05019007654321',
+      industry: 'Alimentos & Bebidas',
+      phone: '+504 2552-3344',
+      email: 'info@cafemontealto.com',
+      address: 'Colonia Trejo, 10 Calle',
+      city: 'San Pedro Sula',
+      country: 'Honduras',
+      notes: 'Productores y exportadores de café especial de altura a mercados internacionales.',
+    },
+  });
+
+  const comp3 = await prisma.company.create({
+    data: {
+      name: 'Clínica Dental Sonrisas',
+      legalName: 'Servicios Odontológicos Sonrisas S.A.',
+      taxId: '05019002345678',
+      industry: 'Salud & Odontología',
+      phone: '+504 2556-7788',
+      email: 'citas@dentalsonrisas.hn',
+      address: 'Bulevar Los Próceres',
+      city: 'San Pedro Sula',
+      country: 'Honduras',
+      notes: 'Cadena de clínicas odontológicas con servicios especializados de implantes y ortodoncia.',
+    },
+  });
+
+  const comp4 = await prisma.company.create({
+    data: {
+      name: 'Grupo Logístico Honduras',
+      legalName: 'Grupo Logístico y Aduanero Honduras S.A.',
+      taxId: '05019003456789',
+      industry: 'Transporte & Carga',
+      phone: '+504 2665-9900',
+      email: 'operaciones@grupologisticohn.com',
+      address: 'Zona Viva, Puerto Cortés',
+      city: 'Puerto Cortés',
+      country: 'Honduras',
+      notes: 'Agencia aduanera y transporte multimodal para importadores y exportadores.',
+    },
+  });
+
+  const comp5 = await prisma.company.create({
+    data: {
+      name: 'Inmobiliaria Panorama',
+      legalName: 'Inversiones y Desarrollos Panorama S.A. de C.V.',
+      taxId: '05019004567890',
+      industry: 'Bienes Raíces & Construcción',
+      phone: '+504 2566-4455',
+      email: 'ventas@panoramahn.com',
+      address: 'Colonia Rancho El Coco',
+      city: 'San Pedro Sula',
+      country: 'Honduras',
+      notes: 'Desarrolladora inmobiliaria de condominios residenciales y torres corporativas.',
+    },
+  });
+
+  const comp6 = await prisma.company.create({
+    data: {
+      name: 'Laboratorios Centroamérica',
+      legalName: 'Laboratorios Farmacéuticos Centroamericanos S.A.',
+      taxId: '05019005678901',
+      industry: 'Farmacéutica & Salud',
+      phone: '+504 2235-8899',
+      email: 'info@labcentroamerica.hn',
+      address: 'Parque Industrial Búfalo',
+      city: 'San Pedro Sula',
+      country: 'Honduras',
+      notes: 'Fabricación y comercialización de medicamentos, soluciones y suplementos de salud.',
+    },
+  });
+
+  console.log('✅ Empresas creadas: 6 Cuentas corporativas.');
+
+  // 3. Contactos (Personas & Relaciones vinculadas a Empresas)
   const contact1 = await prisma.contact.create({
     data: {
       name: 'Ing. Roberto Flores',
-      companyName: 'Distribuidora del Caribe',
+      jobTitle: 'Gerente de Compras',
+      companyId: comp1.id,
+      companyName: comp1.name,
       email: 'rflores@distribuidoradelcaribe.hn',
       phone: '50499887766',
       notes: 'Cliente muy interesado en renovar la presencia digital para mayor alcance comercial en San Pedro Sula.',
@@ -68,7 +164,9 @@ async function main() {
   const contact2 = await prisma.contact.create({
     data: {
       name: 'Lic. Mariana Zelaya',
-      companyName: 'Café Monte Alto',
+      jobTitle: 'Directora de Marca & Mercadeo',
+      companyId: comp2.id,
+      companyName: comp2.name,
       email: 'mariana@cafemontealto.com',
       phone: '50498765432',
       notes: 'Nueva línea de café especial de altura para exportación. Excelente química en la primera reunión.',
@@ -81,7 +179,9 @@ async function main() {
   const contact3 = await prisma.contact.create({
     data: {
       name: 'Lic. Javier Pineda',
-      companyName: 'Clínica Dental Sonrisas',
+      jobTitle: 'Director Médico y Propietario',
+      companyId: comp3.id,
+      companyName: comp3.name,
       email: 'jpineda@dentalsonrisas.hn',
       phone: '50495551234',
       notes: 'Buscan captar más pacientes para ortodoncia e implantes con pauta publicitaria en Meta y TikTok.',
@@ -94,7 +194,9 @@ async function main() {
   const contact4 = await prisma.contact.create({
     data: {
       name: 'Abg. Claudia Romero',
-      companyName: 'Grupo Logístico Honduras',
+      jobTitle: 'Gerente General',
+      companyId: comp4.id,
+      companyName: comp4.name,
       email: 'cromero@grupologisticohn.com',
       phone: '50494448899',
       notes: 'Video con dron y testimonios para su 15 aniversario institucional.',
@@ -107,7 +209,9 @@ async function main() {
   const contact5 = await prisma.contact.create({
     data: {
       name: 'Carlos Nuñez',
-      companyName: 'Inmobiliaria Panorama',
+      jobTitle: 'Gerente Comercial Inmobiliario',
+      companyId: comp5.id,
+      companyName: comp5.name,
       email: 'cnunez@panoramahn.com',
       phone: '50493332211',
       notes: 'Relación consolidada. Contrato firmado por 6 meses con renovación automática.',
@@ -118,7 +222,9 @@ async function main() {
   const contact6 = await prisma.contact.create({
     data: {
       name: 'Dra. Elena Castro',
-      companyName: 'Laboratorios Centroamérica',
+      jobTitle: 'Jefe de Control de Calidad',
+      companyId: comp6.id,
+      companyName: comp6.name,
       email: 'ecastro@labcentroamerica.hn',
       phone: '50497775566',
       notes: 'Contacto referido. Esperando que nos envíe sus manuales actuales antes de cotizar.',
@@ -128,9 +234,9 @@ async function main() {
     },
   });
 
-  console.log('✅ Contactos creados.');
+  console.log('✅ Contactos creados y vinculados a sus empresas.');
 
-  // 3. Oportunidades y Propuestas en el Embudo de Ventas (6 etapas)
+  // 4. Oportunidades y Propuestas en el Embudo de Ventas (6 etapas)
   const prop1 = await prisma.proposal.create({
     data: {
       title: 'Rediseño Web Corporativa + Catálogo',
@@ -139,6 +245,7 @@ async function main() {
       stage: 'PROPUESTA',
       notes: 'Incluye diseño UX/UI a la medida, catálogo de productos y optimización móvil.',
       contactId: contact1.id,
+      companyId: comp1.id,
       assignedToId: asesor1.id,
     },
   });
@@ -151,6 +258,7 @@ async function main() {
       stage: 'NEGOCIACION',
       notes: 'Identidad visual, logotipo, papelería y diseño de 3 empaques de café.',
       contactId: contact2.id,
+      companyId: comp2.id,
       assignedToId: asesor2.id,
     },
   });
@@ -163,6 +271,7 @@ async function main() {
       stage: 'CONTACTADO',
       notes: 'Diagnóstico inicial realizado por llamada. Levantando brief para definir inversión publicitaria.',
       contactId: contact3.id,
+      companyId: comp3.id,
       assignedToId: asesor1.id,
     },
   });
@@ -175,6 +284,7 @@ async function main() {
       stage: 'PROPUESTA',
       notes: 'Producción audiovisual con cámaras de cine, dron 4K, edición y locución profesional.',
       contactId: contact4.id,
+      companyId: comp4.id,
       assignedToId: asesor2.id,
     },
   });
@@ -187,6 +297,7 @@ async function main() {
       stage: 'GANADO', // ¡Venta Cerrada Ganada!
       notes: 'Servicio integral: branding, web y campañas omnicanal. Contrato firmado y anticipo pagado.',
       contactId: contact5.id,
+      companyId: comp5.id,
       assignedToId: asesor1.id,
     },
   });
@@ -199,6 +310,7 @@ async function main() {
       stage: 'NUEVO',
       notes: 'Prospecto recién ingresado por recomendación. Esperando manuales para sesión de diagnóstico.',
       contactId: contact6.id,
+      companyId: comp6.id,
       assignedToId: asesor2.id,
     },
   });

@@ -13,6 +13,42 @@ export async function GET(req: Request) {
     const search = searchParams.get('search');
     const industry = searchParams.get('industry');
 
+    // Auto-sync / auto-link: Ensure any contact with companyName has a corresponding Company record
+    const unlinkedContacts = await prisma.contact.findMany({
+      where: {
+        companyId: null,
+        companyName: { not: null },
+      },
+      select: { id: true, companyName: true },
+    });
+
+    if (unlinkedContacts.length > 0) {
+      for (const c of unlinkedContacts) {
+        if (!c.companyName || !c.companyName.trim()) continue;
+        const name = c.companyName.trim();
+        let comp = await prisma.company.findFirst({
+          where: { name: { equals: name, mode: 'insensitive' } },
+        });
+        if (!comp) {
+          comp = await prisma.company.create({
+            data: {
+              name,
+              city: 'San Pedro Sula',
+              country: 'Honduras',
+            },
+          });
+        }
+        await prisma.contact.update({
+          where: { id: c.id },
+          data: { companyId: comp.id, companyName: comp.name },
+        });
+        await prisma.proposal.updateMany({
+          where: { contactId: c.id, companyId: null },
+          data: { companyId: comp.id },
+        });
+      }
+    }
+
     const where: any = {};
 
     if (industry) {

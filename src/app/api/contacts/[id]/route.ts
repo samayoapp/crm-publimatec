@@ -97,7 +97,29 @@ export async function PATCH(
         });
       }
     } else if (data.companyName !== undefined) {
-      updateData.companyName = data.companyName ? data.companyName.trim() : null;
+      const trimmedName = data.companyName ? data.companyName.trim() : null;
+      updateData.companyName = trimmedName;
+      if (trimmedName) {
+        let comp = await prisma.company.findFirst({
+          where: { name: { equals: trimmedName, mode: 'insensitive' } },
+        });
+        if (!comp) {
+          comp = await prisma.company.create({
+            data: {
+              name: trimmedName,
+              city: 'San Pedro Sula',
+              country: 'Honduras',
+            },
+          });
+        }
+        updateData.companyId = comp.id;
+        await prisma.proposal.updateMany({
+          where: { contactId: params.id },
+          data: { companyId: comp.id },
+        });
+      } else {
+        updateData.companyId = null;
+      }
     }
 
     if (data.assignedToId !== undefined) {
