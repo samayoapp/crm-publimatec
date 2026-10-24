@@ -29,6 +29,7 @@ import {
 import { PROPOSAL_STAGES } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import LeadModal from '@/components/LeadModal';
+import { getStalenessInfo, formatFriendlyDate, getDaysDiff } from '@/lib/timeUtils';
 
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
@@ -531,22 +532,35 @@ export default function ContactsListPage() {
                         </span>
                       </td>
 
-                      {/* Último Contacto */}
+                      {/* Último Contacto & Inactividad */}
                       <td className="py-3.5 px-4 max-w-xs">
-                        {latestAct ? (
-                          <div className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">
-                            <span className="font-semibold text-slate-700 dark:text-slate-200">
-                              {latestAct.type === 'WHATSAPP' ? '💬 ' : latestAct.type === 'LLAMADA' ? '📞 ' : latestAct.type === 'VENTA_CERRADA' ? '🎉 ' : '📝 '}
-                            </span>
-                            {latestAct.description}
-                          </div>
-                        ) : contact.notes ? (
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 italic">
-                            {contact.notes}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-[11px] italic">Sin notas</span>
-                        )}
+                        {(() => {
+                          const staleness = getStalenessInfo(contact.lastContactAt || contact.createdAt);
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${staleness.badgeClass}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${staleness.dotColor}`} />
+                                  <span>{staleness.label}</span>
+                                </span>
+                              </div>
+                              {latestAct ? (
+                                <div className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1">
+                                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                    {latestAct.type === 'WHATSAPP' ? '💬 ' : latestAct.type === 'LLAMADA' ? '📞 ' : latestAct.type === 'VENTA_CERRADA' ? '🎉 ' : '📝 '}
+                                  </span>
+                                  {latestAct.description}
+                                </div>
+                              ) : contact.notes ? (
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 italic">
+                                  {contact.notes}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[10px] italic">Sin actividades</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Propuestas / Negocios */}
@@ -791,11 +805,22 @@ export default function ContactsListPage() {
                     </span>
                   </div>
 
-                  {/* Latest Activity */}
+                  {/* Latest Activity & Staleness */}
                   <div className="mt-2.5 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span className="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">
-                      Última interacción:
-                    </span>
+                    {(() => {
+                      const staleness = getStalenessInfo(contact.lastContactAt || contact.createdAt);
+                      return (
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-slate-700 dark:text-slate-300">
+                            Última interacción:
+                          </span>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-semibold border ${staleness.badgeClass}`}>
+                            <span className={`w-1 h-1 rounded-full ${staleness.dotColor}`} />
+                            <span>{staleness.shortLabel}</span>
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {latestAct ? (
                       <p className="line-clamp-2 italic bg-slate-50/70 dark:bg-slate-900/40 p-1.5 rounded-lg border border-slate-100 dark:border-slate-800/60">
                         {latestAct.description}

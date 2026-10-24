@@ -81,6 +81,12 @@ export async function PATCH(
       updateData.nextFollowUp = data.nextFollowUp ? new Date(data.nextFollowUp) : null;
     }
     if (data.nextFollowUpTask !== undefined) updateData.nextFollowUpTask = data.nextFollowUpTask;
+    if (data.firstContactAt !== undefined) {
+      updateData.firstContactAt = data.firstContactAt ? new Date(data.firstContactAt) : null;
+    }
+    if (data.lastContactAt !== undefined) {
+      updateData.lastContactAt = data.lastContactAt ? new Date(data.lastContactAt) : null;
+    }
 
     if (data.companyId !== undefined) {
       updateData.companyId = data.companyId || null;

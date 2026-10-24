@@ -36,20 +36,20 @@ export async function POST(
       },
     });
 
-    // Optionally update contact follow up
-    if (nextFollowUp !== undefined || nextFollowUpTask !== undefined) {
-      const updateContact: any = {};
-      if (nextFollowUp !== undefined) {
-        updateContact.nextFollowUp = nextFollowUp ? new Date(nextFollowUp) : null;
-      }
-      if (nextFollowUpTask !== undefined) {
-        updateContact.nextFollowUpTask = nextFollowUpTask;
-      }
-      await prisma.contact.update({
-        where: { id: params.id },
-        data: updateContact,
-      });
+    // Always refresh contact lastContactAt on interaction
+    const updateContact: any = {
+      lastContactAt: new Date(),
+    };
+    if (nextFollowUp !== undefined) {
+      updateContact.nextFollowUp = nextFollowUp ? new Date(nextFollowUp) : null;
     }
+    if (nextFollowUpTask !== undefined) {
+      updateContact.nextFollowUpTask = nextFollowUpTask;
+    }
+    await prisma.contact.update({
+      where: { id: params.id },
+      data: updateContact,
+    });
 
     return NextResponse.json({ activity }, { status: 201 });
   } catch (error) {

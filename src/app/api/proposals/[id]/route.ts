@@ -91,7 +91,14 @@ export async function PATCH(
       if (normalizedStage === 'PERDIDA') normalizedStage = 'PERDIDO';
       if (normalizedStage !== currentProp.stage) {
         updateData.stage = normalizedStage;
+        updateData.stageUpdatedAt = new Date();
         isStageChange = true;
+
+        if (normalizedStage === 'GANADO' || normalizedStage === 'PERDIDO') {
+          updateData.closedAt = new Date();
+        } else {
+          updateData.closedAt = null;
+        }
       }
     }
 
@@ -108,7 +115,7 @@ export async function PATCH(
       },
     });
 
-    // Auto-record activity on stage change
+    // Auto-record activity on stage change and refresh contact lastContactAt
     if (isStageChange) {
       const prevLabel = PROPOSAL_STAGES[currentProp.stage]?.label || currentProp.stage;
       const newLabel = PROPOSAL_STAGES[data.stage]?.label || data.stage;
@@ -126,6 +133,12 @@ export async function PATCH(
           type: isWon ? 'VENTA_CERRADA' : 'CAMBIO_ETAPA',
           description,
         },
+      });
+
+      // Update contact last interaction time
+      await prisma.contact.update({
+        where: { id: updatedProposal.contactId },
+        data: { lastContactAt: new Date() },
       });
     }
 

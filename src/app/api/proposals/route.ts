@@ -62,6 +62,10 @@ export async function GET(req: Request) {
             companyName: true,
             phone: true,
             email: true,
+            firstContactAt: true,
+            lastContactAt: true,
+            nextFollowUp: true,
+            nextFollowUpTask: true,
             company: {
               select: { id: true, name: true, logoUrl: true, industry: true },
             },

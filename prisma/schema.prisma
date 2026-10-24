@@ -58,6 +58,8 @@ model Contact {
   nextFollowUpTask String?    // Tarea o motivo del contacto
   assignedToId     String?
   assignedTo       User?      @relation("AssignedContacts", fields: [assignedToId], references: [id], onDelete: SetNull)
+  firstContactAt   DateTime?  @default(now()) // Fecha del primer contacto real
+  lastContactAt    DateTime?  @default(now()) // Fecha de la última interacción (para medir días sin respuesta)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   proposals        Proposal[]
@@ -65,21 +67,23 @@ model Contact {
 }
 
 model Proposal {
-  id           String     @id @default(uuid())
-  title        String     // ej. "Rediseño Web + Catálogo" o "Branding 2026"
-  amount       Float      @default(0) // Valor numérico
-  currency     String     @default("USD")
-  stage        String     @default("ENVIADA") // "NUEVO", "CONTACTADO", "PROPUESTA", "NEGOCIACION", "GANADO", "PERDIDO"
-  notes        String?    // Alcances o detalles de la propuesta
-  contactId    String
-  contact      Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  companyId    String?
-  company      Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  assignedToId String?
-  assignedTo   User?      @relation("AssignedProposals", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  activities   Activity[]
+  id             String     @id @default(uuid())
+  title          String     // ej. "Rediseño Web + Catálogo" o "Branding 2026"
+  amount         Float      @default(0) // Valor numérico
+  currency       String     @default("USD")
+  stage          String     @default("ENVIADA") // "NUEVO", "CONTACTADO", "PROPUESTA", "NEGOCIACION", "GANADO", "PERDIDO"
+  notes          String?    // Alcances o detalles de la propuesta
+  contactId      String
+  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  companyId      String?
+  company        Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedToId   String?
+  assignedTo     User?      @relation("AssignedProposals", fields: [assignedToId], references: [id], onDelete: SetNull)
+  closedAt       DateTime?  // Fecha en que la venta se marcó como GANADO o PERDIDO
+  stageUpdatedAt DateTime?  @default(now()) // Fecha en que ingresó a la etapa actual
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  activities     Activity[]
 }
 
 model Activity {

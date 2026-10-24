@@ -25,6 +25,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import ActivityModal from '@/components/ActivityModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
+import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDiff } from '@/lib/timeUtils';
 
 export default function ContactDetailPage() {
   const params = useParams();
@@ -258,6 +259,64 @@ export default function ContactDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Left Column: Seguimiento & Propuestas */}
         <div className="space-y-4 md:col-span-1">
+          {/* Medición del Tiempo & Viaje del Cliente */}
+          <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-3 transition-colors">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Viaje Comercial & Tiempos</span>
+              </h3>
+              <Link
+                href="/calendar"
+                className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+              >
+                Ver Agenda →
+              </Link>
+            </div>
+
+            {(() => {
+              const staleness = getStalenessInfo(contact.lastContactAt || contact.createdAt);
+              const daysInJourney = getDaysDiff(contact.firstContactAt || contact.createdAt);
+
+              return (
+                <div className="space-y-2.5 text-xs">
+                  {/* Semáforo de Actividad */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-700/80">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Estado de Respuesta:</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-bold text-[10px] border ${staleness.badgeClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${staleness.dotColor}`} />
+                      <span>{staleness.label}</span>
+                    </span>
+                  </div>
+
+                  {/* Primer Contacto */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-slate-500 dark:text-slate-400">Primer Contacto:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {formatFriendlyDate(contact.firstContactAt || contact.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Duración en el embudo */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-slate-500 dark:text-slate-400">Tiempo en el Embudo:</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {daysInJourney === 0 ? 'Inició hoy' : `${daysInJourney} días de viaje`}
+                    </span>
+                  </div>
+
+                  {/* Última interacción */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-slate-500 dark:text-slate-400">Última Interacción:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {formatFriendlyDateTime(contact.lastContactAt || contact.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Próximo contacto */}
           <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-2.5 transition-colors">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">

@@ -15,6 +15,7 @@ import {
   Sparkles,
   ExternalLink,
   FileText,
+  Calendar,
   X,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -71,6 +72,11 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
       label: 'Embudo de Ventas',
       href: '/pipeline',
       icon: Kanban,
+    },
+    {
+      label: 'Calendario & Citas',
+      href: '/calendar',
+      icon: Calendar,
     },
     {
       label: 'Propuestas Comerciales',

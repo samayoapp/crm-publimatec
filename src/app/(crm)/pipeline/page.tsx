@@ -23,10 +23,12 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Calendar,
 } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
+import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
 
 export default function PipelinePage() {
   const [proposals, setProposals] = useState<any[]>([]);
@@ -150,7 +152,15 @@ export default function PipelinePage() {
                 title="Cambiar a Vista Tabla Comparativa y Tarjetas"
               >
                 <Table2 className="w-3.5 h-3.5" />
-                <span>Ver en Tabla / Lista</span>
+                <span>Ver en Tabla</span>
+              </Link>
+              <Link
+                href="/calendar"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
+                title="Abrir Calendario Comercial & Citas"
+              >
+                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Calendario & Citas</span>
               </Link>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -362,6 +372,50 @@ export default function PipelinePage() {
                             {prop.notes}
                           </p>
                         )}
+
+                        {/* Control de Tiempos & Inactividad */}
+                        {(() => {
+                          const daysInStage = getDaysDiff(prop.stageUpdatedAt || prop.updatedAt || prop.createdAt);
+                          const isFollowUpOverdue = prop.contact?.nextFollowUp
+                            ? new Date(prop.contact.nextFollowUp).getTime() < new Date().setHours(0, 0, 0, 0)
+                            : false;
+
+                          return (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px]">
+                              {!isWon && (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold border ${
+                                    daysInStage >= 7
+                                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
+                                      : daysInStage >= 4
+                                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'
+                                      : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                  }`}
+                                  title={`Permanencia en etapa: ${daysInStage} días`}
+                                >
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{daysInStage === 0 ? 'Hoy' : `${daysInStage}d`}</span>
+                                </span>
+                              )}
+
+                              {prop.contact?.nextFollowUp && (
+                                <Link
+                                  href="/calendar"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold border ${
+                                    isFollowUpOverdue
+                                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
+                                      : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30'
+                                  }`}
+                                  title={prop.contact.nextFollowUpTask || 'Cita programada'}
+                                >
+                                  <Calendar className="w-2.5 h-2.5" />
+                                  <span>{isFollowUpOverdue ? 'Cita Vencida' : formatFriendlyDate(prop.contact.nextFollowUp)}</span>
+                                </Link>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Footer: Vendedor & Acciones */}
                         <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
