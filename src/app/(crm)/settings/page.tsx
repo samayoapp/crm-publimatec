@@ -14,8 +14,13 @@ import {
   CheckCircle2,
   Sparkles,
   ShieldAlert,
+  Quote,
+  Trash2,
+  Plus,
+  RotateCcw,
 } from 'lucide-react';
 import ImageInput from '@/components/ImageInput';
+import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -35,6 +40,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [motivationalQuotes, setMotivationalQuotes] = useState<string[]>([]);
+  const [newQuoteInput, setNewQuoteInput] = useState('');
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -51,6 +58,11 @@ export default function SettingsPage() {
           setEmail(data.settings.email || '');
           setAddress(data.settings.address || '');
           setLogoUrl(data.settings.logoUrl || '');
+          setMotivationalQuotes(
+            data.settings.motivationalQuotes && data.settings.motivationalQuotes.length > 0
+              ? data.settings.motivationalQuotes
+              : DEFAULT_MOTIVATIONAL_QUOTES
+          );
         }
         setLoading(false);
       })
@@ -81,6 +93,21 @@ export default function SettingsPage() {
     else if (curr === 'EUR') setCurrencySymbol('€');
   };
 
+  const handleAddQuote = () => {
+    const trimmed = newQuoteInput.trim();
+    if (!trimmed) return;
+    setMotivationalQuotes([...motivationalQuotes, trimmed]);
+    setNewQuoteInput('');
+  };
+
+  const handleRemoveQuote = (index: number) => {
+    setMotivationalQuotes(motivationalQuotes.filter((_, i) => i !== index));
+  };
+
+  const handleResetDefaultQuotes = () => {
+    setMotivationalQuotes([...DEFAULT_MOTIVATIONAL_QUOTES]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -101,6 +128,7 @@ export default function SettingsPage() {
           email,
           address,
           logoUrl,
+          motivationalQuotes,
         }),
       });
 
@@ -330,6 +358,101 @@ export default function SettingsPage() {
                 Objetivo comercial para calcular el porcentaje de logro mensual en reportes y dashboard.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Frases Motivadoras del Dashboard */}
+        <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                <Quote className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Frases Motivadoras del Dashboard</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-400">
+                    {motivationalQuotes.length} activas
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Estas frases se seleccionan al azar para darle la bienvenida y motivar las ventas de cada asesor al ingresar.
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleResetDefaultQuotes}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                title="Restablecer a frases sugeridas predeterminadas"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restaurar sugeridas</span>
+              </button>
+            )}
+          </div>
+
+          {/* Form to add a new quote */}
+          {isAdmin && (
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <input
+                type="text"
+                value={newQuoteInput}
+                onChange={(e) => setNewQuoteInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddQuote();
+                  }
+                }}
+                placeholder="Escribe una nueva frase motivadora de ventas..."
+                className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+              <button
+                type="button"
+                onClick={handleAddQuote}
+                disabled={!newQuoteInput.trim()}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Frase</span>
+              </button>
+            </div>
+          )}
+
+          {/* List of quotes */}
+          <div className="space-y-2 pt-2">
+            {motivationalQuotes.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-2">
+                No hay frases configuradas actualmente. Haz clic en "Restaurar sugeridas" o escribe una arriba.
+              </p>
+            ) : (
+              motivationalQuotes.map((quote, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-colors group"
+                >
+                  <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                    <span className="text-xs font-black text-indigo-500 mt-0.5">#{idx + 1}</span>
+                    <p className="text-xs text-slate-700 dark:text-slate-200 italic leading-relaxed">
+                      "{quote}"
+                    </p>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveQuote(idx)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Eliminar frase"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
 

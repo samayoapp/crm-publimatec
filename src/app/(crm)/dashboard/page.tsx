@@ -19,13 +19,16 @@ import {
   CalendarDays,
   ExternalLink,
   Zap,
+  Sparkles,
 } from 'lucide-react';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import WelcomeModal from '@/components/WelcomeModal';
 import { formatFriendlyDate } from '@/lib/timeUtils';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Time Analytics State
   const [timePeriod, setTimePeriod] = useState('last_4_weeks');
@@ -38,6 +41,16 @@ export default function DashboardPage() {
       .then((d) => {
         setData(d);
         setLoading(false);
+
+        // Check if welcome modal was already shown in this session
+        try {
+          const hasSeen = sessionStorage.getItem('crm_welcome_seen');
+          if (!hasSeen) {
+            setShowWelcome(true);
+          }
+        } catch (e) {
+          setShowWelcome(true);
+        }
       })
       .catch((err) => {
         console.error(err);
@@ -113,6 +126,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
+      {/* Barra Superior con Saludo y Botón de Motivación */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>¡Hola, {data?.currentUser?.name?.split(' ')[0] || 'Equipo'}!</span>
+            <span className="text-xl animate-pulse">👋</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Resumen comercial y pulso de ventas en tiempo real
+          </p>
+        </div>
+
+        <button
+          id="btn-trigger-welcome"
+          type="button"
+          onClick={() => setShowWelcome(true)}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200/70 dark:border-indigo-800/60 shadow-sm transition-all hover:scale-[1.02]"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+          <span>Frase Motivadora</span>
+        </button>
+      </div>
+
       {/* Resumen Superior Ultra Limpio */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 transition-colors">
@@ -536,6 +572,20 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* PopUp de Bienvenida y Motivación */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => {
+          setShowWelcome(false);
+          try {
+            sessionStorage.setItem('crm_welcome_seen', 'true');
+          } catch (e) {}
+        }}
+        userName={data?.currentUser?.name || 'Asesor'}
+        quotes={data?.motivationalQuotes || []}
+      />
     </div>
   );
 }
+

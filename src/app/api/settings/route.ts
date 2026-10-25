@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 
 export async function GET() {
   try {
@@ -25,7 +26,14 @@ export async function GET() {
           email: 'contacto@pixelmediahn.com',
           address: 'San Pedro Sula, Cortés, Honduras',
           monthlySalesTarget: 15000,
+          motivationalQuotes: DEFAULT_MOTIVATIONAL_QUOTES,
         },
+      });
+    } else if (!settings.motivationalQuotes || settings.motivationalQuotes.length === 0) {
+      // Initialize with defaults if empty
+      settings = await prisma.setting.update({
+        where: { id: 'default' },
+        data: { motivationalQuotes: DEFAULT_MOTIVATIONAL_QUOTES },
       });
     }
 
@@ -55,6 +63,11 @@ export async function PATCH(req: Request) {
     if (data.address !== undefined) updateData.address = data.address?.trim() || null;
     if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl?.trim() || null;
     if (data.monthlySalesTarget !== undefined) updateData.monthlySalesTarget = parseFloat(data.monthlySalesTarget) || 0;
+    if (Array.isArray(data.motivationalQuotes)) {
+      updateData.motivationalQuotes = data.motivationalQuotes
+        .map((q: any) => String(q).trim())
+        .filter((q: string) => q.length > 0);
+    }
 
     const settings = await prisma.setting.upsert({
       where: { id: 'default' },
@@ -70,6 +83,7 @@ export async function PATCH(req: Request) {
         address: updateData.address || 'San Pedro Sula, Cortés, Honduras',
         logoUrl: updateData.logoUrl || null,
         monthlySalesTarget: updateData.monthlySalesTarget ?? 15000,
+        motivationalQuotes: updateData.motivationalQuotes || DEFAULT_MOTIVATIONAL_QUOTES,
       },
     });
 

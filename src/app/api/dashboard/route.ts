@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 
 export async function GET() {
   try {
@@ -101,7 +102,22 @@ export async function GET() {
       take: 6,
     });
 
+    const settings = await prisma.setting.findUnique({
+      where: { id: 'default' },
+      select: { motivationalQuotes: true },
+    });
+
+    const motivationalQuotes = settings?.motivationalQuotes?.length
+      ? settings.motivationalQuotes
+      : DEFAULT_MOTIVATIONAL_QUOTES;
+
     return NextResponse.json({
+      currentUser: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      },
+      motivationalQuotes,
       summary: {
         totalContacts,
         activeCount: activeProposals.length,
@@ -122,3 +138,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Error al cargar métricas' }, { status: 500 });
   }
 }
+

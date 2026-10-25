@@ -110,5 +110,6 @@ model Setting {
   address            String?  @default("San Pedro Sula, Cortés, Honduras")
   logoUrl            String?
   monthlySalesTarget Float    @default(15000)
+  motivationalQuotes String[] @default([])
   updatedAt          DateTime @updatedAt
 }

@@ -78,3 +78,11 @@ export const ACTIVITY_TYPES = [
   { key: 'NOTA', label: 'Nota Interna', icon: 'FileText' },
   { key: 'VENTA_CERRADA', label: 'Venta Cerrada', icon: 'Award' },
 ];
+
+export const DEFAULT_MOTIVATIONAL_QUOTES: string[] = [
+  'Cada llamada y cada seguimiento es una oportunidad para superar tus límites. ¡Hoy se cierran grandes tratos!',
+  'El éxito en las ventas no es cuestión de suerte, es la disciplina y pasión de aportar valor real a cada cliente.',
+  'No vendas un producto o servicio; entrega soluciones que transformen e impulsen el negocio de tu cliente.',
+  'Tu actitud y perseverancia determinan tu altitud: cada conversación de hoy construye el cierre de mañana.',
+];
+
