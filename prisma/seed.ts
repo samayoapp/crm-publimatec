@@ -6,12 +6,11 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('--- Iniciando Seeding para PixelMedia / Publimatec ---');
 
-  // Clear existing
-  await prisma.activity.deleteMany({});
-  await prisma.proposal.deleteMany({});
-  await prisma.contact.deleteMany({});
-  await prisma.company.deleteMany({});
-  await prisma.user.deleteMany({});
+  const count = await prisma.user.count();
+  if (count > 0) {
+    console.log('ℹ️ Base de datos ya contiene usuarios. Abortando seed para proteger datos.');
+    return;
+  }
 
   const defaultPassword = await bcrypt.hash('abc123', 10);
 

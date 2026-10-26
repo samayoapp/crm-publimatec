@@ -25,7 +25,7 @@ services:
       dockerfile: Dockerfile
     container_name: publimatec_crm_app
     restart: unless-stopped
-    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
+    command: sh -c "npx prisma generate && npm run dev"
     ports:
       - "3010:3000"
     environment:
