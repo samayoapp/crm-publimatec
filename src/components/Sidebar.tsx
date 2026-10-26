@@ -19,6 +19,7 @@ import {
   BarChart3,
   FolderOpen,
   User,
+  Feather,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -225,8 +226,8 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
               </div>
             ))}
 
-            {/* Botón Frase Motivadora exclusivo en Barra Lateral */}
-            <div className="pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 pb-6">
+            {/* Acceso discreto a Frase Inspiracional / Plumita */}
+            <div className="pt-3 pb-6 flex items-center justify-center">
               <button
                 id="btn-sidebar-quote"
                 type="button"
@@ -238,13 +239,11 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
                     window.dispatchEvent(new CustomEvent('crm-show-quote'));
                   }
                 }}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 dark:border-amber-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xs cursor-pointer group"
-                title="Ver frase motivadora de ventas"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 dark:text-slate-500 dark:hover:text-amber-400 hover:bg-amber-500/10 dark:hover:bg-amber-500/10 transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                title="Inspiración del día"
+                aria-label="Inspiración del día"
               >
-                <div className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
-                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                </div>
-                <span>Frase Motivadora</span>
+                <Feather className="w-4 h-4" />
               </button>
             </div>
           </nav>
