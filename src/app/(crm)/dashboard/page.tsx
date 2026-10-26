@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const [savingProposal, setSavingProposal] = useState(false);
 
   const [discardModalContact, setDiscardModalContact] = useState<any>(null);
-  const [discardReason, setDiscardReason] = useState('POSPONER');
+  const [discardReason, setDiscardReason] = useState('MANANA');
   const [savingDiscard, setSavingDiscard] = useState(false);
 
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
@@ -337,26 +337,186 @@ export default function DashboardPage() {
 
     setSavingDiscard(true);
     try {
-      if (discardReason === 'POSPONER') {
-        // Posponer 7 días adelante
-        const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      if (discardReason === 'MANANA') {
+        // Posponer para mañana a las 8:00 AM (entra a la lista de espera)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(8, 0, 0, 0);
+
         await fetch(`/api/contacts/${discardModalContact.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            nextFollowUp: nextWeek.toISOString(),
-            nextFollowUpTask: 'Seguimiento pospuesto para próxima semana',
+            nextFollowUp: tomorrow.toISOString(),
+            nextFollowUpTask: 'Seguimiento pospuesto para mañana',
           }),
         });
+
         await fetch(`/api/contacts/${discardModalContact.id}/activities`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'NOTA',
-            description: 'Contacto pospuesto 7 días por el asesor comercial.',
+            description: 'Contacto pospuesto para mañana por el asesor comercial.',
           }),
         });
-        setActionSuccessMsg(`🗓️ Contacto de ${discardModalContact.name} pospuesto 7 días`);
+
+        // Actualización optimista: pasa a lista de espera
+        setData((prev: any) => {
+          if (!prev) return prev;
+          const updatedPending = (prev.pendingFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          const updatedWaiting = [
+            {
+              ...discardModalContact,
+              nextFollowUp: tomorrow.toISOString(),
+              nextFollowUpTask: 'Seguimiento pospuesto para mañana',
+            },
+            ...(prev.waitingListFollowUps || []).filter((c: any) => c.id !== discardModalContact.id),
+          ];
+          return {
+            ...prev,
+            pendingFollowUps: updatedPending,
+            waitingListFollowUps: updatedWaiting,
+            summary: {
+              ...prev.summary,
+              pendingFollowUpsCount: updatedPending.length,
+              waitingListCount: updatedWaiting.length,
+            },
+          };
+        });
+
+        setActionSuccessMsg(`🌅 Contacto de ${discardModalContact.name} pospuesto para mañana`);
+      } else if (discardReason === 'DOS_DIAS') {
+        // Posponer 2 días adelante
+        const in2Days = new Date();
+        in2Days.setDate(in2Days.getDate() + 2);
+        in2Days.setHours(8, 0, 0, 0);
+
+        await fetch(`/api/contacts/${discardModalContact.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nextFollowUp: in2Days.toISOString(),
+            nextFollowUpTask: 'Seguimiento pospuesto para dentro de 2 días',
+          }),
+        });
+
+        await fetch(`/api/contacts/${discardModalContact.id}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'NOTA',
+            description: 'Contacto pospuesto 2 días por el asesor comercial.',
+          }),
+        });
+
+        setData((prev: any) => {
+          if (!prev) return prev;
+          const updatedPending = (prev.pendingFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          const updatedWaiting = (prev.waitingListFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          return {
+            ...prev,
+            pendingFollowUps: updatedPending,
+            waitingListFollowUps: updatedWaiting,
+            summary: {
+              ...prev.summary,
+              pendingFollowUpsCount: updatedPending.length,
+              waitingListCount: updatedWaiting.length,
+            },
+          };
+        });
+
+        setActionSuccessMsg(`⏳ Contacto de ${discardModalContact.name} pospuesto por 2 días`);
+      } else if (discardReason === 'PROXIMA_SEMANA') {
+        // Posponer 7 días adelante
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        nextWeek.setHours(8, 0, 0, 0);
+
+        await fetch(`/api/contacts/${discardModalContact.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nextFollowUp: nextWeek.toISOString(),
+            nextFollowUpTask: 'Seguimiento pospuesto para la próxima semana',
+          }),
+        });
+
+        await fetch(`/api/contacts/${discardModalContact.id}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'NOTA',
+            description: 'Contacto pospuesto 7 días (próxima semana) por el asesor comercial.',
+          }),
+        });
+
+        setData((prev: any) => {
+          if (!prev) return prev;
+          const updatedPending = (prev.pendingFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          const updatedWaiting = (prev.waitingListFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          return {
+            ...prev,
+            pendingFollowUps: updatedPending,
+            waitingListFollowUps: updatedWaiting,
+            summary: {
+              ...prev.summary,
+              pendingFollowUpsCount: updatedPending.length,
+              waitingListCount: updatedWaiting.length,
+            },
+          };
+        });
+
+        setActionSuccessMsg(`📅 Contacto de ${discardModalContact.name} pospuesto 7 días`);
+      } else if (discardReason === 'YA_CONTACTADO') {
+        // Quitar seguimiento inmediato de llamar hoy porque el vendedor ya conversó previamente
+        await fetch(`/api/contacts/${discardModalContact.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nextFollowUp: null,
+            nextFollowUpTask: 'Contacto ya contactado previamente',
+          }),
+        });
+
+        // Si tiene propuesta en etapa inicial NUEVO, avanzar automáticamente a CONTACTADO
+        if (discardModalContact.proposals?.[0]) {
+          const prop = discardModalContact.proposals[0];
+          if (prop.stage === 'NUEVO') {
+            await fetch(`/api/proposals/${prop.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stage: 'CONTACTADO' }),
+            });
+          }
+        }
+
+        await fetch(`/api/contacts/${discardModalContact.id}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'NOTA',
+            description: 'Contacto registrado como ya contactado previamente al ingresar ficha en CRM.',
+          }),
+        });
+
+        setData((prev: any) => {
+          if (!prev) return prev;
+          const updatedPending = (prev.pendingFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          const updatedWaiting = (prev.waitingListFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          return {
+            ...prev,
+            pendingFollowUps: updatedPending,
+            waitingListFollowUps: updatedWaiting,
+            summary: {
+              ...prev.summary,
+              pendingFollowUpsCount: updatedPending.length,
+              waitingListCount: updatedWaiting.length,
+            },
+          };
+        });
+
+        setActionSuccessMsg(`✅ ${discardModalContact.name} registrado como ya contactado previamente`);
       } else {
         // Descartar definitivamente (quitar seguimiento y cerrar propuesta perdida)
         await fetch(`/api/contacts/${discardModalContact.id}`, {
@@ -384,6 +544,23 @@ export default function DashboardPage() {
             description: 'Contacto descartado de los seguimientos activos por el asesor.',
           }),
         });
+
+        setData((prev: any) => {
+          if (!prev) return prev;
+          const updatedPending = (prev.pendingFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          const updatedWaiting = (prev.waitingListFollowUps || []).filter((c: any) => c.id !== discardModalContact.id);
+          return {
+            ...prev,
+            pendingFollowUps: updatedPending,
+            waitingListFollowUps: updatedWaiting,
+            summary: {
+              ...prev.summary,
+              pendingFollowUpsCount: updatedPending.length,
+              waitingListCount: updatedWaiting.length,
+            },
+          };
+        });
+
         setActionSuccessMsg(`🗑️ Contacto ${discardModalContact.name} marcado como descartado`);
       }
 
@@ -823,7 +1000,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setDiscardModalContact(lead);
-                        setDiscardReason('POSPONER');
+                        setDiscardReason('MANANA');
                       }}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-200/90 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300/80 dark:border-slate-700 transition-all cursor-pointer"
                       title="Descartar o posponer este seguimiento"
@@ -1008,6 +1185,17 @@ export default function DashboardPage() {
                       className="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 border border-indigo-300 dark:border-indigo-800 transition-all cursor-pointer"
                     >
                       Avanzar a Propuesta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscardModalContact(lead);
+                        setDiscardReason('MANANA');
+                      }}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer"
+                      title="Descartar o posponer este seguimiento"
+                    >
+                      Descartar
                     </button>
                   </div>
                 </div>
@@ -1302,7 +1490,7 @@ export default function DashboardPage() {
       {/* MODAL 3: DESCARTAR O POSPONER (GRIS) */}
       {discardModalContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <button
               onClick={() => setDiscardModalContact(null)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full"
@@ -1316,7 +1504,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Descartar Seguimiento
+                  Gestionar o Posponer Seguimiento
                 </h3>
                 <p className="text-xs text-slate-500">
                   {discardModalContact.name} {discardModalContact.companyName ? `• ${discardModalContact.companyName}` : ''}
@@ -1330,34 +1518,112 @@ export default function DashboardPage() {
               </p>
 
               <div className="space-y-2">
+                {/* 1. Mañana */}
                 <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  discardReason === 'POSPONER'
-                    ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 font-semibold text-indigo-900 dark:text-indigo-200'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                  discardReason === 'MANANA'
+                    ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 font-semibold text-amber-900 dark:text-amber-200 ring-1 ring-amber-500/30'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850'
                 }`}>
                   <input
                     type="radio"
                     name="discardAction"
-                    checked={discardReason === 'POSPONER'}
-                    onChange={() => setDiscardReason('POSPONER')}
-                    className="mt-0.5 text-indigo-600"
+                    value="MANANA"
+                    checked={discardReason === 'MANANA'}
+                    onChange={() => setDiscardReason('MANANA')}
+                    className="mt-0.5 text-amber-600"
                   />
                   <div>
-                    <span className="text-xs font-bold block">🗓️ Posponer 7 días</span>
-                    <span className="text-[11px] text-slate-500">
-                      Mover la llamada para la próxima semana y limpiar la lista de hoy.
+                    <span className="text-xs font-bold block text-slate-900 dark:text-white">
+                      🌅 Posponer para Mañana (+1 día)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Mover la llamada para mañana a las 8:00 AM (pasará a la lista de espera).
                     </span>
                   </div>
                 </label>
 
+                {/* 2. Para 2 días */}
                 <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  discardReason === 'CERRAR_PERDIDO'
-                    ? 'border-rose-500 bg-rose-50/40 dark:bg-rose-950/30 font-semibold text-rose-900 dark:text-rose-200'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                  discardReason === 'DOS_DIAS'
+                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 font-semibold text-blue-900 dark:text-blue-200 ring-1 ring-blue-500/30'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850'
                 }`}>
                   <input
                     type="radio"
                     name="discardAction"
+                    value="DOS_DIAS"
+                    checked={discardReason === 'DOS_DIAS'}
+                    onChange={() => setDiscardReason('DOS_DIAS')}
+                    className="mt-0.5 text-blue-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold block text-slate-900 dark:text-white">
+                      ⏳ Posponer 2 días (+48 hrs)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Mover el seguimiento para dentro de 2 días hábiles (8:00 AM).
+                    </span>
+                  </div>
+                </label>
+
+                {/* 3. Próxima semana */}
+                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  discardReason === 'PROXIMA_SEMANA'
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 font-semibold text-indigo-900 dark:text-indigo-200 ring-1 ring-indigo-500/30'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850'
+                }`}>
+                  <input
+                    type="radio"
+                    name="discardAction"
+                    value="PROXIMA_SEMANA"
+                    checked={discardReason === 'PROXIMA_SEMANA'}
+                    onChange={() => setDiscardReason('PROXIMA_SEMANA')}
+                    className="mt-0.5 text-indigo-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold block text-slate-900 dark:text-white">
+                      📅 Próxima semana (Mismo día / 7 días)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Mover la llamada exactamente 7 días adelante y limpiar la lista de hoy.
+                    </span>
+                  </div>
+                </label>
+
+                {/* 4. Ya Contactado */}
+                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  discardReason === 'YA_CONTACTADO'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 font-semibold text-emerald-950 dark:text-emerald-200 ring-1 ring-emerald-500/30'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850'
+                }`}>
+                  <input
+                    type="radio"
+                    name="discardAction"
+                    value="YA_CONTACTADO"
+                    checked={discardReason === 'YA_CONTACTADO'}
+                    onChange={() => setDiscardReason('YA_CONTACTADO')}
+                    className="mt-0.5 text-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold block text-emerald-700 dark:text-emerald-300">
+                      ✅ Ya Contactado Previamente (Solo ingresando ficha)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      El asesor ya conversó con el cliente y solo está ingresando sus datos en el sistema. Despeja la llamada de hoy y avanza a etapa Contactado.
+                    </span>
+                  </div>
+                </label>
+
+                {/* 5. Descartar definitivamente */}
+                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  discardReason === 'CERRAR_PERDIDO'
+                    ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/30 font-semibold text-rose-900 dark:text-rose-200 ring-1 ring-rose-500/30'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850'
+                }`}>
+                  <input
+                    type="radio"
+                    name="discardAction"
+                    value="CERRAR_PERDIDO"
                     checked={discardReason === 'CERRAR_PERDIDO'}
                     onChange={() => setDiscardReason('CERRAR_PERDIDO')}
                     className="mt-0.5 text-rose-600"
@@ -1366,7 +1632,7 @@ export default function DashboardPage() {
                     <span className="text-xs font-bold block text-rose-600 dark:text-rose-400">
                       🗑️ Descartar Definitivamente (Cerrado Perdido)
                     </span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
                       Quitar seguimiento y marcar oportunidad como perdida o no interesada.
                     </span>
                   </div>
