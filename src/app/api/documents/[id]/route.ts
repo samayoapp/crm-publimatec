@@ -106,10 +106,22 @@ export async function PATCH(
     if (body.description !== undefined) updateData.description = body.description ? body.description.trim() : null;
     if (body.category !== undefined) updateData.category = body.category.toUpperCase();
     if (body.version !== undefined) updateData.version = body.version.trim();
+    if (body.folderId !== undefined) updateData.folderId = body.folderId || null;
+    if (body.tags !== undefined) {
+      updateData.tags = Array.isArray(body.tags)
+        ? body.tags.map((t: any) => String(t).trim()).filter(Boolean)
+        : typeof body.tags === 'string'
+        ? body.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        : [];
+    }
 
     const updated = await prisma.document.update({
       where: { id: params.id },
       data: updateData,
+      include: {
+        folder: { select: { id: true, name: true, color: true } },
+        uploadedBy: { select: { id: true, name: true } },
+      },
     });
 
     return NextResponse.json({ document: updated });

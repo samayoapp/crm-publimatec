@@ -25,6 +25,7 @@ model User {
   proposals  Proposal[] @relation("AssignedProposals")
   activities Activity[]
   documents  Document[]
+  folders    Folder[]
 }
 
 model Company {
@@ -154,8 +155,12 @@ model Document {
   fileType        String    // "PDF", "PPT", "EXCEL", "WORD", "IMAGE", "LINK"
   fileSize        Int?      // Tamaño en bytes si es archivo local
   category        String    @default("COTIZACION") // "COTIZACION", "PRESENTACION", "CATALOGO", "FICHA_TECNICA", "CONTRATO", "OTRO"
+  tags            String[]  @default([])
   version         String?   @default("v1")
   isInstitutional Boolean   @default(false) // Si es TRUE, aparece en la Biblioteca Institucional para todos los asesores
+
+  folderId        String?
+  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   proposalId      String?
   proposal        Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
@@ -172,5 +177,21 @@ model Document {
   @@index([proposalId])
   @@index([isInstitutional])
   @@index([uploadedById])
+  @@index([folderId])
+}
+
+model Folder {
+  id              String     @id @default(uuid())
+  name            String
+  color           String?    @default("indigo") // "indigo", "emerald", "amber", "rose", "purple", "cyan", "blue"
+  isInstitutional Boolean    @default(false)
+  userId          String?
+  user            User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents       Document[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([isInstitutional])
+  @@index([userId])
 }
 

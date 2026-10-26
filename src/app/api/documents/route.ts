@@ -11,16 +11,28 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const institutional = searchParams.get('institutional') === 'true';
+    const personal = searchParams.get('personal') === 'true';
+    const targetUserId = searchParams.get('userId');
+    const folderId = searchParams.get('folderId');
+    const category = searchParams.get('category');
+    const tag = searchParams.get('tag');
+    const search = searchParams.get('search');
     const proposalId = searchParams.get('proposalId');
     const contactId = searchParams.get('contactId');
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
 
     const where: any = {};
 
     if (institutional) {
       // Biblioteca institucional: visible para todos los usuarios
       where.isInstitutional = true;
+    } else if (personal) {
+      // Espacio personal: visible para el usuario actual o el asesor seleccionado si es Director
+      where.isInstitutional = false;
+      if (user.role === 'ADMIN' && targetUserId) {
+        where.uploadedById = targetUserId;
+      } else {
+        where.uploadedById = user.id;
+      }
     } else if (proposalId) {
       // Verificar propiedad de la propuesta
       const prop = await prisma.proposal.findUnique({
@@ -81,15 +93,38 @@ export async function GET(req: Request) {
       }
     }
 
-    if (category && category !== 'ALL') {
-      where.category = category;
+    // Filtro por carpeta
+    if (folderId === 'ROOT' || folderId === 'NONE') {
+      where.folderId = null;
+    } else if (folderId && folderId !== 'ALL') {
+      where.folderId = folderId;
     }
 
+    // Filtro por Tag / Categoría
+    const effectiveTag = tag || category;
+    const tagFilters: any[] = [];
+    if (effectiveTag && effectiveTag !== 'ALL') {
+      tagFilters.push({ tags: { has: effectiveTag } });
+      tagFilters.push({ category: effectiveTag });
+    }
+
+    // Filtro por búsqueda
+    const searchFilters: any[] = [];
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+      searchFilters.push({ title: { contains: search, mode: 'insensitive' } });
+      searchFilters.push({ description: { contains: search, mode: 'insensitive' } });
+      searchFilters.push({ tags: { has: search } });
+    }
+
+    if (tagFilters.length > 0 && searchFilters.length > 0) {
+      where.AND = [
+        { OR: tagFilters },
+        { OR: searchFilters },
       ];
+    } else if (tagFilters.length > 0) {
+      where.OR = tagFilters;
+    } else if (searchFilters.length > 0) {
+      where.OR = searchFilters;
     }
 
     const documents = await prisma.document.findMany({
@@ -98,6 +133,7 @@ export async function GET(req: Request) {
         uploadedBy: { select: { id: true, name: true, avatarUrl: true } },
         proposal: { select: { id: true, title: true, amount: true } },
         contact: { select: { id: true, name: true, companyName: true } },
+        folder: { select: { id: true, name: true, color: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -124,6 +160,8 @@ export async function POST(req: Request) {
       fileType = 'OTRO',
       fileSize,
       category = 'COTIZACION',
+      tags = [],
+      folderId = null,
       version = 'v1',
       isInstitutional = false,
       proposalId,
@@ -172,6 +210,17 @@ export async function POST(req: Request) {
       }
     }
 
+    const finalTags: string[] = Array.isArray(tags)
+      ? tags.map((t: any) => String(t).trim()).filter(Boolean)
+      : typeof tags === 'string' && tags.trim()
+      ? tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+      : [];
+
+    const effectiveCategory = category || (finalTags.length > 0 ? finalTags[0] : 'GENERAL');
+    if (effectiveCategory && !finalTags.includes(effectiveCategory)) {
+      finalTags.push(effectiveCategory);
+    }
+
     const document = await prisma.document.create({
       data: {
         title: title.trim(),
@@ -179,7 +228,9 @@ export async function POST(req: Request) {
         fileUrl: fileUrl.trim(),
         fileType: fileType.toUpperCase(),
         fileSize: fileSize ? parseInt(fileSize, 10) : null,
-        category: category.toUpperCase(),
+        category: effectiveCategory.toUpperCase(),
+        tags: finalTags,
+        folderId: folderId || null,
         version: version ? version.trim() : 'v1',
         isInstitutional: Boolean(isInstitutional),
         proposalId: proposalId || null,
@@ -189,6 +240,7 @@ export async function POST(req: Request) {
       include: {
         uploadedBy: { select: { id: true, name: true } },
         proposal: { select: { id: true, title: true } },
+        folder: { select: { id: true, name: true, color: true } },
       },
     });
 
