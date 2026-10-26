@@ -136,15 +136,15 @@ export async function POST(req: Request) {
       companyId = comp.id;
     }
 
-    // Regla de 48 horas automáticas para seguimiento o contacto inicial
-    let finalNextFollowUp: Date = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    // Todo contacto nuevo entra por defecto a LLAMAR HOY (hora actual de registro)
+    let finalNextFollowUp: Date = new Date();
     if (data.nextFollowUp) {
       finalNextFollowUp = new Date(data.nextFollowUp);
     }
 
     const finalNextFollowUpTask = data.nextFollowUpTask && data.nextFollowUpTask.trim()
       ? data.nextFollowUpTask.trim()
-      : 'Primer contacto / Seguimiento comercial (48h)';
+      : 'Primer contacto / Llamar hoy';
 
     const contact = await prisma.contact.create({
       data: {

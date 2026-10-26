@@ -6,6 +6,7 @@ import {
   User,
   Building,
   Phone,
+  PhoneCall,
   Mail,
   DollarSign,
   Calendar,
@@ -153,12 +154,12 @@ export default function LeadModal({
       setEstimatedValue('');
       setAssignedToId(currentUser?.id || '');
       setNotes('');
-      // Asignar automáticamente 48 horas como regla comercial de contacto
-      const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      // Todo nuevo contacto entra de inmediato con prioridad para LLAMAR HOY
+      const now = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
-      const defaultDateStr = `${in48h.getFullYear()}-${pad(in48h.getMonth() + 1)}-${pad(in48h.getDate())}T${pad(in48h.getHours())}:${pad(in48h.getMinutes())}`;
+      const defaultDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
       setNextFollowUp(defaultDateStr);
-      setNextFollowUpTask('Primer contacto / Seguimiento comercial (48h)');
+      setNextFollowUpTask('Primer contacto / Llamar hoy');
       setShowAdvanced(false);
     }
     setError(null);
@@ -197,9 +198,9 @@ export default function LeadModal({
     setLoading(true);
     setError(null);
 
-    const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
-    const finalFollowUp = nextFollowUp ? new Date(nextFollowUp).toISOString() : in48h.toISOString();
-    const finalTask = nextFollowUpTask.trim() || 'Primer contacto / Seguimiento comercial (48h)';
+    const now = new Date();
+    const finalFollowUp = nextFollowUp ? new Date(nextFollowUp).toISOString() : now.toISOString();
+    const finalTask = nextFollowUpTask.trim() || 'Primer contacto / Llamar hoy';
 
     const payload: any = {
       name: contactName.trim(),
@@ -471,21 +472,21 @@ export default function LeadModal({
             />
           </div>
 
-          {/* 5. Regla Comercial Automática: Próximo Seguimiento (48 Horas) */}
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* 5. Prioridad Comercial: Llamar Hoy */}
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-                <Clock className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                <PhoneCall className="w-4 h-4" />
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <span>Próximo Seguimiento (Automático 48h)</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">
-                    Compromiso
+                  <span>Prioridad de Contacto: Llamar Hoy</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    Prioridad Inmediata
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                  Límite asignado para llamar o contactar a este prospecto y evitar inacción.
+                  Entra de inmediato a tu lista de <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Llamar Hoy</strong> en el Resumen para contactarlo hoy.
                 </p>
               </div>
             </div>
@@ -494,7 +495,7 @@ export default function LeadModal({
                 type="datetime-local"
                 value={nextFollowUp}
                 onChange={(e) => setNextFollowUp(e.target.value)}
-                className="w-full sm:w-44 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700/80 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                className="w-full sm:w-44 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700/80 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
           </div>
