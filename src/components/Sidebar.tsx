@@ -55,66 +55,86 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
 
   const isAdmin = user?.role === 'ADMIN';
 
-  const navItems = [
+  const menuSections = [
     {
-      label: 'Resumen & Hoy',
-      href: '/dashboard',
-      icon: LayoutDashboard,
+      id: 'core',
+      items: [
+        {
+          label: 'Resumen',
+          href: '/dashboard',
+          icon: LayoutDashboard,
+        },
+        {
+          label: 'Embudo',
+          href: '/pipeline',
+          icon: Kanban,
+        },
+        {
+          label: 'Calendario',
+          href: '/calendar',
+          icon: Calendar,
+        },
+      ],
     },
     {
-      label: 'Embudo de Ventas',
-      href: '/pipeline',
-      icon: Kanban,
+      id: 'crm',
+      items: [
+        {
+          label: 'Contactos',
+          href: '/leads',
+          icon: Users,
+        },
+        {
+          label: 'Empresas',
+          href: '/companies',
+          icon: Building2,
+        },
+        {
+          label: 'Propuestas',
+          href: '/proposals',
+          icon: FileText,
+        },
+      ],
     },
     {
-      label: 'Calendario & Citas',
-      href: '/calendar',
-      icon: Calendar,
+      id: 'team_resources',
+      items: [
+        {
+          label: 'Equipo Comercial',
+          href: '/team',
+          icon: UserCheck,
+        },
+        {
+          label: 'Biblioteca de Recursos',
+          href: '/resources',
+          icon: FolderOpen,
+        },
+        {
+          label: isAdmin ? 'Reportes Gerenciales' : 'Mis Reportes',
+          href: '/reports',
+          icon: BarChart3,
+        },
+      ],
     },
     {
-      label: 'Propuestas Comerciales',
-      href: '/proposals',
-      icon: FileText,
+      id: 'profile_settings',
+      items: [
+        {
+          label: 'Mi Perfil',
+          href: '/profile',
+          icon: User,
+        },
+        ...(isAdmin
+          ? [
+              {
+                label: 'Configuración',
+                href: '/settings',
+                icon: Settings,
+              },
+            ]
+          : []),
+      ],
     },
-    {
-      label: 'Biblioteca Oficial',
-      href: '/resources',
-      icon: FolderOpen,
-    },
-    {
-      label: 'Empresas & Cuentas',
-      href: '/companies',
-      icon: Building2,
-    },
-    {
-      label: 'Personas & Contactos',
-      href: '/leads',
-      icon: Users,
-    },
-    {
-      label: 'Equipo Comercial',
-      href: '/team',
-      icon: UserCheck,
-    },
-    {
-      label: isAdmin ? 'Reportes Gerenciales' : 'Mis Reportes',
-      href: '/reports',
-      icon: BarChart3,
-    },
-    {
-      label: 'Mi Perfil',
-      href: '/profile',
-      icon: User,
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: 'Configuración',
-            href: '/settings',
-            icon: Settings,
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -175,30 +195,35 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
 
           {/* Navigation */}
           <nav className="p-3 space-y-1">
-            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 py-2">
-              Módulos Comerciales
-            </div>
+            {menuSections.map((section, sectionIdx) => (
+              <div key={section.id} className="space-y-1">
+                {sectionIdx > 0 && (
+                  <div className="py-1.5 px-2">
+                    <div className="border-t border-slate-200 dark:border-slate-800/80" />
+                  </div>
+                )}
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.icon;
 
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 font-semibold'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
 
             {/* Botón Frase Motivadora exclusivo en Barra Lateral */}
             <div className="pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 pb-6">
