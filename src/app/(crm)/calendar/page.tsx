@@ -361,8 +361,8 @@ export default function CalendarPage() {
               <div>
                 <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Calendario Comercial & Agenda</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    PixelMedia
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                    PUBLIMATEC
                   </span>
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -700,7 +700,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-                  <span>PixelMedia Time Tracker</span>
+                  <span>PUBLIMATEC CRM Agenda</span>
                   <Link href="/leads" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
                     Ver todos los contactos →
                   </Link>

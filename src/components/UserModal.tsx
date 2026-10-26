@@ -175,7 +175,7 @@ export default function UserModal({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="carlos.ventas@pixelmediahn.com"
+                placeholder="carlos.ventas@publimatec.com"
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
               />
             </div>

@@ -48,6 +48,9 @@ export default function ActivityModal({
       if (scheduleNext && nextFollowUp) {
         payload.nextFollowUp = new Date(nextFollowUp).toISOString();
         payload.nextFollowUpTask = nextFollowUpTask;
+      } else {
+        payload.nextFollowUp = null;
+        payload.nextFollowUpTask = null;
       }
 
       const res = await fetch(`/api/contacts/${leadId}/activities`, {
@@ -61,6 +64,7 @@ export default function ActivityModal({
         throw new Error(data.error || 'Error al registrar la actividad');
       }
 
+      window.dispatchEvent(new CustomEvent('crm-lead-saved'));
       setDescription('');
       setScheduleNext(false);
       setNextFollowUp('');

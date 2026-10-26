@@ -77,6 +77,17 @@ export async function GET(req: Request) {
         assignedTo: {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
+        documents: {
+          select: {
+            id: true,
+            title: true,
+            fileType: true,
+            fileUrl: true,
+            version: true,
+            category: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -129,11 +140,17 @@ export async function POST(req: Request) {
 
     const amount = parseFloat(data.amount) || 0;
 
+    let currency = data.currency;
+    if (!currency) {
+      const setting = await prisma.setting.findFirst({ select: { currency: true } });
+      currency = setting?.currency || 'HNL';
+    }
+
     const proposal = await prisma.proposal.create({
       data: {
         title: data.title.trim(),
         amount,
-        currency: data.currency || 'USD',
+        currency,
         stage,
         notes: data.notes ? data.notes.trim() : null,
         contactId: data.contactId,
@@ -153,16 +170,26 @@ export async function POST(req: Request) {
     // Record activity on contact
     const isSale = stage === 'VENTA' || stage === 'GANADO';
     const activityDesc = isSale
-      ? `🎉 ¡VENTA CERRADA! Propuesta "${proposal.title}" por $${amount.toLocaleString()} USD aprobada.`
-      : `Propuesta "${proposal.title}" por $${amount.toLocaleString()} USD creada por ${user.name}.`;
+      ? `🎉 ¡VENTA CERRADA! Propuesta "${proposal.title}" por ${proposal.currency} ${amount.toLocaleString()} aprobada.`
+      : `Propuesta "${proposal.title}" por ${proposal.currency} ${amount.toLocaleString()} creada por ${user.name}.`;
 
     await prisma.activity.create({
       data: {
         contactId: proposal.contactId,
         proposalId: proposal.id,
         userId: user.id,
-        type: isSale ? 'VENTA_CERRADA' : 'NOTA',
+        type: isSale ? 'VENTA_CERRADA' : 'CAMBIO_ETAPA',
         description: activityDesc,
+      },
+    });
+
+    // Al avanzar o crear una propuesta comercial, el contacto sale del listado de prospección/llamadas iniciales
+    await prisma.contact.update({
+      where: { id: proposal.contactId },
+      data: {
+        nextFollowUp: null,
+        nextFollowUpTask: null,
+        lastContactAt: new Date(),
       },
     });
 

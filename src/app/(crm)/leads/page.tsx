@@ -30,6 +30,7 @@ import { PROPOSAL_STAGES } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import LeadModal from '@/components/LeadModal';
 import { getStalenessInfo, formatFriendlyDate, getDaysDiff } from '@/lib/timeUtils';
+import { useSettings } from '@/lib/settingsContext';
 
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
@@ -77,6 +78,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function ContactsListPage() {
+  const { currencySymbol, formatMoney } = useSettings();
   const [contacts, setContacts] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -369,7 +371,7 @@ export default function ContactsListPage() {
                 <option value="relation-desc">🕒 Mayor Tiempo de Relación</option>
                 <option value="relation-asc">🆕 Más Recientes (Nuevos)</option>
                 <option value="buyer-first">🛍️ Ya Compraron Primero</option>
-                <option value="pipeline-desc">💰 Mayor Monto Propuestas ($)</option>
+                <option value="pipeline-desc">💰 Mayor Monto Propuestas ({currencySymbol})</option>
                 <option value="followup-asc">⏰ Próximo Seguimiento</option>
                 <option value="name-asc">🔤 Nombre (A - Z)</option>
                 <option value="name-desc">🔤 Nombre (Z - A)</option>
@@ -584,7 +586,7 @@ export default function ContactsListPage() {
                                     {p.title}
                                   </span>
                                   <span className="font-bold text-slate-600 dark:text-slate-400">
-                                    (${p.amount?.toLocaleString()})
+                                    ({formatMoney(p.amount || 0)})
                                   </span>
                                 </div>
                               );
@@ -801,7 +803,7 @@ export default function ContactsListPage() {
                       </span>
                     </div>
                     <span className="text-xs font-black text-slate-900 dark:text-white">
-                      ${totalAmount.toLocaleString()} USD
+                      {formatMoney(totalAmount)}
                     </span>
                   </div>
 

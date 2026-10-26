@@ -22,6 +22,9 @@ export async function GET(
         proposals: {
           include: {
             assignedTo: { select: { id: true, name: true } },
+            documents: {
+              select: { id: true, title: true, fileType: true, fileUrl: true, version: true },
+            },
           },
           orderBy: { updatedAt: 'desc' },
         },
@@ -41,6 +44,29 @@ export async function GET(
 
     if (!contact) {
       return NextResponse.json({ error: 'Contacto no encontrado' }, { status: 404 });
+    }
+
+    // Validación de Privacidad: Solo el asesor dueño del contacto o un Administrador pueden ver el perfil completo y el teléfono
+    const isOwner = user.role === 'ADMIN' || !contact.assignedToId || contact.assignedToId === user.id;
+    if (!isOwner) {
+      return NextResponse.json(
+        {
+          error: 'Acceso privado: Este contacto pertenece a otro asesor comercial',
+          restricted: true,
+          contact: {
+            id: contact.id,
+            name: contact.name,
+            jobTitle: contact.jobTitle,
+            companyName: contact.companyName,
+            companyId: contact.companyId,
+            company: contact.company ? { id: contact.company.id, name: contact.company.name } : null,
+            assignedTo: contact.assignedTo,
+            assignedToId: contact.assignedToId,
+            // Teléfono, correo, notas, propuestas y actividades NO se exponen a otros vendedores
+          },
+        },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({ contact });
@@ -66,6 +92,15 @@ export async function PATCH(
 
     if (!currentContact) {
       return NextResponse.json({ error: 'Contacto no encontrado' }, { status: 404 });
+    }
+
+    // Solo el asesor dueño o un Administrador pueden editar el contacto
+    const canEdit = user.role === 'ADMIN' || !currentContact.assignedToId || currentContact.assignedToId === user.id;
+    if (!canEdit) {
+      return NextResponse.json(
+        { error: 'No tienes autorización para modificar contactos asignados a otro asesor' },
+        { status: 403 }
+      );
     }
 
     const data = await req.json();
@@ -170,6 +205,23 @@ export async function DELETE(
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const contactToDelete = await prisma.contact.findUnique({
+      where: { id: params.id },
+      select: { id: true, assignedToId: true },
+    });
+
+    if (!contactToDelete) {
+      return NextResponse.json({ error: 'Contacto no encontrado' }, { status: 404 });
+    }
+
+    const canDelete = user.role === 'ADMIN' || !contactToDelete.assignedToId || contactToDelete.assignedToId === user.id;
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'No tienes autorización para eliminar contactos asignados a otro asesor' },
+        { status: 403 }
+      );
     }
 
     await prisma.contact.delete({

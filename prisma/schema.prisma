@@ -13,14 +13,18 @@ model User {
   email      String     @unique
   password   String
   role       String     @default("ASESOR") // "ADMIN" o "ASESOR"
+  jobTitle   String?    @default("Ejecutivo de Ventas")
   phone      String?
   avatarUrl  String?
   active     Boolean    @default(true)
+  approved   Boolean    @default(true) // Aprobado por el Director
+  status     String     @default("ACTIVE") // "ACTIVE" | "PENDING_APPROVAL" | "REJECTED"
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   contacts   Contact[]  @relation("AssignedContacts")
   proposals  Proposal[] @relation("AssignedProposals")
   activities Activity[]
+  documents  Document[]
 }
 
 model Company {
@@ -64,6 +68,7 @@ model Contact {
   updatedAt        DateTime   @updatedAt
   proposals        Proposal[]
   activities       Activity[]
+  documents        Document[]
 }
 
 model Proposal {
@@ -84,6 +89,7 @@ model Proposal {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   activities     Activity[]
+  documents      Document[]
 }
 
 model Activity {
@@ -113,3 +119,58 @@ model Setting {
   motivationalQuotes String[] @default([])
   updatedAt          DateTime @updatedAt
 }
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String   // Código numérico de 6 dígitos
+  type      String   // "REGISTER" | "PASSWORD_RESET"
+  payload   String?  // JSON serializado con datos del registro pendiente
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?  // Destinatario específico (ej. id del admin) o null para todos los directores
+  type      String   // "NEW_USER_REGISTRATION" | "USER_APPROVED" | "SYSTEM"
+  title     String
+  message   String
+  link      String?  // Enlace para acción rápida (/team o /dashboard)
+  read      Boolean  @default(false)
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Document {
+  id              String    @id @default(uuid())
+  title           String    // ej. "Cotización Rotulación Luminosa v2" o "Catálogo Pantallas LED 2026"
+  description     String?   // Notas o alcances del documento
+  fileUrl         String    // Ruta interna /uploads/documents/... o URL externa (Drive, Canva, etc.)
+  fileType        String    // "PDF", "PPT", "EXCEL", "WORD", "IMAGE", "LINK"
+  fileSize        Int?      // Tamaño en bytes si es archivo local
+  category        String    @default("COTIZACION") // "COTIZACION", "PRESENTACION", "CATALOGO", "FICHA_TECNICA", "CONTRATO", "OTRO"
+  version         String?   @default("v1")
+  isInstitutional Boolean   @default(false) // Si es TRUE, aparece en la Biblioteca Institucional para todos los asesores
+
+  proposalId      String?
+  proposal        Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  uploadedById    String?
+  uploadedBy      User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([proposalId])
+  @@index([isInstitutional])
+  @@index([uploadedById])
+}
+

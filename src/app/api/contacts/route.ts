@@ -136,6 +136,16 @@ export async function POST(req: Request) {
       companyId = comp.id;
     }
 
+    // Regla de 48 horas automáticas para seguimiento o contacto inicial
+    let finalNextFollowUp: Date = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    if (data.nextFollowUp) {
+      finalNextFollowUp = new Date(data.nextFollowUp);
+    }
+
+    const finalNextFollowUpTask = data.nextFollowUpTask && data.nextFollowUpTask.trim()
+      ? data.nextFollowUpTask.trim()
+      : 'Primer contacto / Seguimiento comercial (48h)';
+
     const contact = await prisma.contact.create({
       data: {
         name: data.name.trim(),
@@ -146,8 +156,8 @@ export async function POST(req: Request) {
         phone: data.phone.trim().replace(/[^0-9+]/g, ''),
         email: data.email ? data.email.trim() : null,
         notes: data.notes ? data.notes.trim() : null,
-        nextFollowUp: data.nextFollowUp ? new Date(data.nextFollowUp) : null,
-        nextFollowUpTask: data.nextFollowUpTask ? data.nextFollowUpTask.trim() : null,
+        nextFollowUp: finalNextFollowUp,
+        nextFollowUpTask: finalNextFollowUpTask,
         assignedToId: assignedToId || null,
       },
       include: {
@@ -158,13 +168,13 @@ export async function POST(req: Request) {
       },
     });
 
-    // Record initial contact activity
+    // Record initial contact activity with 48h follow-up notice
     await prisma.activity.create({
       data: {
         contactId: contact.id,
         userId: user.id,
         type: 'NOTA',
-        description: `Contacto registrado en el CRM por ${user.name}.`,
+        description: `Contacto registrado en el CRM por ${user.name}. Seguimiento comercial asignado automáticamente para las próximas 48 horas.`,
       },
     });
 

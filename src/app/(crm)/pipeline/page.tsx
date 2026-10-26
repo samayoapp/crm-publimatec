@@ -29,8 +29,10 @@ import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
 import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
+import { useSettings } from '@/lib/settingsContext';
 
 export default function PipelinePage() {
+  const { formatMoney } = useSettings();
   const [proposals, setProposals] = useState<any[]>([]);
   const [advisors, setAdvisors] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -277,7 +279,7 @@ export default function PipelinePage() {
                     <span className="truncate">{config.label}</span>
                   </h3>
                   <span className={`text-[11px] font-extrabold ${isWonCol ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
-                    ${totalVal.toLocaleString()} USD
+                    {formatMoney(totalVal)}
                   </span>
                 </div>
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 shrink-0">
@@ -289,7 +291,7 @@ export default function PipelinePage() {
               <div className="p-2 space-y-2.5 min-h-[450px] max-h-[calc(100vh-220px)] overflow-y-auto">
                 {stageProps.length === 0 ? (
                   <div className="text-center py-10 px-2 text-[11px] text-slate-400 dark:text-slate-600 border border-dashed border-slate-300/80 dark:border-slate-800/60 rounded-xl">
-                    Sin prospectos aquí
+                    Sin propuestas en esta etapa
                   </div>
                 ) : (
                   stageProps.map((prop) => {
@@ -321,7 +323,7 @@ export default function PipelinePage() {
                               <span className={`text-xs font-extrabold tracking-tight ${
                                 isWon ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                               }`}>
-                                ${(prop.amount || 0).toLocaleString()} USD
+                                {formatMoney(prop.amount || 0)}
                               </span>
 
                               <button

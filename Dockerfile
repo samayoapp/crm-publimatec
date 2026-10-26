@@ -19,5 +19,5 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-# Script to generate client, apply db schema, seed and start dev server
-CMD ["sh", "-c", "npx prisma generate && npx prisma db push && npm run prisma:seed && npm run dev"]
+# Script to generate client, apply db schema and start dev server
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push && npm run dev"]

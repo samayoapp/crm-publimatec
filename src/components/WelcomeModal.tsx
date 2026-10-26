@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Zap, X, Quote, RefreshCw, Flame } from 'lucide-react';
+import { Sparkles, Zap, X, Quote, RefreshCw, Flame, BookOpen } from 'lucide-react';
+import { parseQuote, MotivationalQuote, DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 
 interface WelcomeModalProps {
-  userName: string;
-  quotes: string[];
+  userName?: string;
+  quotes?: string[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -17,25 +18,25 @@ export default function WelcomeModal({
   onClose,
 }: WelcomeModalProps) {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const validQuotes = quotes && quotes.length > 0 ? quotes : DEFAULT_MOTIVATIONAL_QUOTES;
 
   // Pick a random quote when opened
   useEffect(() => {
-    if (isOpen && quotes && quotes.length > 0) {
-      const randomIndex = Math.floor(Math.random() * quotes.length);
+    if (isOpen && validQuotes.length > 0) {
+      const randomIndex = Math.floor(Math.random() * validQuotes.length);
       setCurrentQuoteIndex(randomIndex);
     }
-  }, [isOpen, quotes]);
+  }, [isOpen, validQuotes.length]);
 
   if (!isOpen) return null;
 
-  const validQuotes = quotes && quotes.length > 0
-    ? quotes
-    : ['Cada llamada y cada seguimiento es una oportunidad para superar tus límites. ¡Hoy se cierran grandes tratos!'];
-
-  const currentQuote = validQuotes[currentQuoteIndex % validQuotes.length];
+  const rawQuote = validQuotes[currentQuoteIndex % (validQuotes.length || 1)];
+  const currentQuote: MotivationalQuote = parseQuote(rawQuote);
 
   const handleNextQuote = () => {
-    setCurrentQuoteIndex((prev) => (prev + 1) % validQuotes.length);
+    if (validQuotes.length > 1) {
+      setCurrentQuoteIndex((prev) => (prev + 1) % validQuotes.length);
+    }
   };
 
   // Get clean first name if available
@@ -58,24 +59,28 @@ export default function WelcomeModal({
         <button
           id="close-welcome-modal"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           title="Cerrar"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Top Badge Icon */}
-        <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 p-0.5 shadow-lg shadow-indigo-500/30">
-          <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[14px] flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-indigo-500 dark:text-indigo-400 animate-pulse" />
+        <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-purple-600 p-0.5 shadow-lg shadow-amber-500/20">
+          <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[14px] flex items-center justify-center p-2.5">
+            <img
+              src="/brand/isotipo-publimatec.png"
+              alt="Publimatec"
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
 
         {/* Welcome Headline in GRANDE */}
         <div className="space-y-1 mb-6">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
             <Flame className="w-3.5 h-3.5 text-amber-500 animate-bounce" />
-            PixelMedia • Publimatec CRM
+            PUBLIMATEC CRM
           </span>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase pt-2">
             ¡BIENVENIDO,{' '}
@@ -90,16 +95,16 @@ export default function WelcomeModal({
 
         {/* Motivational Quote Box */}
         <div className="relative mb-8 text-left bg-gradient-to-br from-indigo-50/70 to-purple-50/40 dark:from-indigo-950/30 dark:to-purple-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl p-5 shadow-inner">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <span className="flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-indigo-600 dark:text-indigo-400">
               <Quote className="w-3.5 h-3.5" />
-              Frase de Ventas del Día
+              Filosofía & Cita de Ventas
             </span>
             {validQuotes.length > 1 && (
               <button
                 type="button"
                 onClick={handleNextQuote}
-                className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
                 title="Ver otra frase motivadora"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -108,9 +113,26 @@ export default function WelcomeModal({
             )}
           </div>
 
-          <p className="text-sm sm:text-base font-medium italic text-slate-700 dark:text-slate-200 leading-relaxed">
-            "{currentQuote}"
+          <p className="text-sm sm:text-base font-medium italic text-slate-800 dark:text-slate-100 leading-relaxed mb-4">
+            "{currentQuote.quote}"
           </p>
+
+          {/* Author & Who they are */}
+          <div className="flex items-center gap-3 pt-3 border-t border-indigo-100/80 dark:border-indigo-900/50">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm shadow-indigo-500/20">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-slate-900 dark:text-white">
+                {currentQuote.author}
+              </div>
+              {currentQuote.context && (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
+                  {currentQuote.context}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Big Action Button: ¡VAMOS A LA ACCIÓN! */}

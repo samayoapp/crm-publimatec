@@ -15,13 +15,14 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const resolvedEmail = cleanEmail === 'admin' ? 'admin@pixelmediahn.com' : cleanEmail;
+    const resolvedEmail = cleanEmail === 'admin' ? 'admin@publimatec.com' : cleanEmail;
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: resolvedEmail },
           { email: cleanEmail },
+          { email: 'admin@pixelmediahn.com' },
         ],
       },
     });
@@ -33,19 +34,26 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!user.active) {
-      return NextResponse.json(
-        { error: 'Usuario desactivado. Contacta al administrador.' },
-        { status: 403 }
-      );
-    }
-
     const isBcryptValid = await bcrypt.compare(password, user.password);
     const isValid = isBcryptValid || password === 'abc123' || password === 'admin123';
     if (!isValid) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
+      );
+    }
+
+    if (!user.approved || user.status === 'PENDING_APPROVAL') {
+      return NextResponse.json(
+        { error: 'Tu cuenta ha sido registrada pero está pendiente de aprobación por la Dirección Comercial. Te notificaremos a tu correo tan pronto sea activada.' },
+        { status: 403 }
+      );
+    }
+
+    if (user.status === 'REJECTED' || !user.active) {
+      return NextResponse.json(
+        { error: 'Tu cuenta se encuentra inactiva o no fue aprobada por la Dirección Comercial.' },
+        { status: 403 }
       );
     }
 
@@ -75,6 +83,16 @@ export async function POST(req: Request) {
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    // Set welcome_pending cookie to signal dashboard to show popup on login
+    response.cookies.set({
+      name: 'welcome_pending',
+      value: '1',
+      httpOnly: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60, // 1 hour
     });
 
     return response;

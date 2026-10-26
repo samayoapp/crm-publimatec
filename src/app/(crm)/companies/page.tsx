@@ -25,10 +25,12 @@ import {
   Filter,
   RotateCcw,
   X,
+  Lock,
 } from 'lucide-react';
 import CompanyModal from '@/components/CompanyModal';
 import LeadModal from '@/components/LeadModal';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import { useSettings } from '@/lib/settingsContext';
 
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
@@ -76,6 +78,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function CompaniesPage() {
+  const { currency, formatMoney } = useSettings();
   const [companies, setCompanies] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -225,9 +228,9 @@ export default function CompaniesPage() {
             En Negociación
           </span>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-            ${totalPipeline.toLocaleString()}
+            {formatMoney(totalPipeline)}
           </div>
-          <span className="text-[10px] text-slate-400">USD en pipeline</span>
+          <span className="text-[10px] text-slate-400">{currency} en pipeline</span>
         </div>
 
         <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 transition-colors">
@@ -235,10 +238,10 @@ export default function CompaniesPage() {
             Ventas Cerradas
           </span>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-            ${totalWon.toLocaleString()}
+            {formatMoney(totalWon)}
           </div>
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-            USD acumulados
+            {currency} acumulados
           </span>
         </div>
       </div>
@@ -544,26 +547,42 @@ export default function CompaniesPage() {
                         <div className="space-y-1.5 max-w-sm">
                           {comp.contacts.map((c: any) => {
                             const badgeStyle = getRoleBadgeStyle(c.jobTitle);
+                            const isOwner = c.canAccess ?? (currentUser?.role === 'ADMIN' || !c.assignedToId || c.assignedToId === currentUser?.id);
                             return (
                               <div key={c.id} className="flex items-center gap-2">
-                                <Link
-                                  href={`/leads/${c.id}`}
-                                  className="font-semibold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-[130px]"
-                                >
-                                  {c.name}
-                                </Link>
+                                {isOwner ? (
+                                  <Link
+                                    href={`/leads/${c.id}`}
+                                    className="font-semibold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-[130px]"
+                                  >
+                                    {c.name}
+                                  </Link>
+                                ) : (
+                                  <span
+                                    className="font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[130px] flex items-center gap-1 cursor-default"
+                                    title={`Contacto asignado a: ${c.assignedTo?.name || 'otro asesor'}`}
+                                  >
+                                    <Lock className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                                    <span>{c.name}</span>
+                                  </span>
+                                )}
                                 {c.jobTitle && (
                                   <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badgeStyle} shrink-0`}>
                                     {c.jobTitle}
                                   </span>
                                 )}
-                                {c.phone && (
+                                {isOwner && c.phone && (
                                   <WhatsAppButton
                                     phone={c.phone}
                                     contactName={c.name}
                                     projectName={comp.name}
                                     size="sm"
                                   />
+                                )}
+                                {!isOwner && c.assignedTo && (
+                                  <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-1 py-0.5 rounded shrink-0">
+                                    {c.assignedTo.name.split(' ')[0]}
+                                  </span>
                                 )}
                               </div>
                             );
@@ -576,7 +595,7 @@ export default function CompaniesPage() {
                     <td className="py-3.5 px-4">
                       <div>
                         <span className="text-xs font-bold text-slate-900 dark:text-white">
-                          ${(comp.metrics?.pipelineValue || 0).toLocaleString()} USD
+                          {formatMoney(comp.metrics?.pipelineValue || 0)}
                         </span>
                         <span className="block text-[10px] text-slate-400 mt-0.5">
                           {comp.metrics?.activeProposalsCount || 0} en proceso
@@ -590,7 +609,7 @@ export default function CompaniesPage() {
                         <span className={`text-xs font-extrabold ${
                           (comp.metrics?.wonValue || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
                         }`}>
-                          ${(comp.metrics?.wonValue || 0).toLocaleString()} USD
+                          {formatMoney(comp.metrics?.wonValue || 0)}
                         </span>
                         {(comp.metrics?.wonProposalsCount || 0) > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
@@ -782,6 +801,7 @@ export default function CompaniesPage() {
                       <div className="space-y-1.5">
                         {comp.contacts.map((c: any) => {
                           const badgeStyle = getRoleBadgeStyle(c.jobTitle);
+                          const isOwner = c.canAccess ?? (currentUser?.role === 'ADMIN' || !c.assignedToId || c.assignedToId === currentUser?.id);
                           return (
                             <div
                               key={c.id}
@@ -789,30 +809,41 @@ export default function CompaniesPage() {
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden border border-white/20 shadow-xs">
-                                  {c.avatarUrl ? (
-                                    <img
-                                      src={c.avatarUrl}
-                                      alt={c.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLElement).style.display = 'none';
-                                      }}
-                                    />
+                                  {isOwner ? (
+                                    c.avatarUrl ? (
+                                      <img
+                                        src={c.avatarUrl}
+                                        alt={c.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLElement).style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      c.name.charAt(0)
+                                    )
                                   ) : (
-                                    c.name.charAt(0)
+                                    <Lock className="w-3.5 h-3.5 text-white" />
                                   )}
                                 </div>
 
                                 <div className="min-w-0">
-                                  <Link
-                                    href={`/leads/${c.id}`}
-                                    className="text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 truncate"
-                                  >
-                                    <span className="truncate">{c.name}</span>
-                                    <ExternalLink className="w-2.5 h-2.5 text-slate-400 opacity-0 group-hover/person:opacity-100 transition-opacity shrink-0" />
-                                  </Link>
+                                  {isOwner ? (
+                                    <Link
+                                      href={`/leads/${c.id}`}
+                                      className="text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 truncate"
+                                    >
+                                      <span className="truncate">{c.name}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-slate-400 opacity-0 group-hover/person:opacity-100 transition-opacity shrink-0" />
+                                    </Link>
+                                  ) : (
+                                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 truncate cursor-default">
+                                      <span className="truncate">{c.name}</span>
+                                      <Lock className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                                    </div>
+                                  )}
 
-                                  <div className="mt-0.5">
+                                  <div className="mt-0.5 flex items-center gap-1">
                                     {c.jobTitle ? (
                                       <span
                                         className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${badgeStyle} truncate max-w-[190px]`}
@@ -822,19 +853,28 @@ export default function CompaniesPage() {
                                     ) : (
                                       <span className="text-[10px] text-slate-400 italic">Contacto directo</span>
                                     )}
+                                    {!isOwner && c.assignedTo && (
+                                      <span className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold truncate max-w-[110px]">
+                                        • {c.assignedTo.name.split(' ')[0]}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-1 shrink-0">
-                                {c.phone && (
+                                {isOwner && c.phone ? (
                                   <WhatsAppButton
                                     phone={c.phone}
                                     contactName={c.name}
                                     projectName={comp.name}
                                     size="sm"
                                   />
-                                )}
+                                ) : !isOwner ? (
+                                  <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                    Privado
+                                  </span>
+                                ) : null}
                               </div>
                             </div>
                           );

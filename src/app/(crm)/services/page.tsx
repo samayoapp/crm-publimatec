@@ -92,9 +92,9 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            Portafolio Comercial • PixelMedia
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            Portafolio Comercial • PUBLIMATEC
           </div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
             Catálogo de Servicios y Guía Comercial
@@ -103,16 +103,6 @@ export default function ServicesPage() {
             Referencia de alcances, entregables y presupuestos para asesores de venta
           </p>
         </div>
-
-        <a
-          href="https://pixelmediahn.com"
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white text-xs font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition-colors"
-        >
-          <span>pixelmediahn.com</span>
-          <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-        </a>
       </div>
 
       {/* Services Grid */}

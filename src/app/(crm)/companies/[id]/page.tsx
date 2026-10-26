@@ -20,12 +20,14 @@ import {
   Award,
   Sparkles,
   Calendar,
+  Lock,
 } from 'lucide-react';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CompanyModal from '@/components/CompanyModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
 import { STAGES } from '@/lib/constants';
+import { useSettings } from '@/lib/settingsContext';
 
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
@@ -73,6 +75,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function CompanyDetailPage() {
+  const { formatMoney } = useSettings();
   const params = useParams();
   const router = useRouter();
   const companyId = params.id as string;
@@ -279,7 +282,7 @@ export default function CompanyDetailPage() {
             <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-500/20 text-center min-w-[130px]">
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase block">Ventas Ganadas</span>
               <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                ${(company.metrics?.wonValue || 0).toLocaleString()} USD
+                {formatMoney(company.metrics?.wonValue || 0)}
               </span>
             </div>
           </div>
@@ -320,69 +323,96 @@ export default function CompanyDetailPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {company.contacts.map((c: any) => (
-                  <div
-                    key={c.id}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:border-indigo-400 dark:hover:border-indigo-500/40 transition-all space-y-2 group"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden border border-white/20">
-                          {c.avatarUrl ? (
-                            <img
-                              src={c.avatarUrl}
-                              alt={c.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            c.name.charAt(0)
-                          )}
-                        </div>
-
-                        <div>
-                          <Link
-                            href={`/leads/${c.id}`}
-                            className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1"
-                          >
-                            <span>{c.name}</span>
-                            <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </Link>
-                          <div className="mt-1">
-                            {c.jobTitle ? (
-                              <span
-                                className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${getRoleBadgeStyle(
-                                  c.jobTitle
-                                )} truncate max-w-[200px]`}
-                              >
-                                {c.jobTitle}
-                              </span>
+                {company.contacts.map((c: any) => {
+                  const isOwner = c.canAccess ?? (currentUser?.role === 'ADMIN' || !c.assignedToId || c.assignedToId === currentUser?.id);
+                  return (
+                    <div
+                      key={c.id}
+                      className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:border-indigo-400 dark:hover:border-indigo-500/40 transition-all space-y-2 group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden border border-white/20">
+                            {isOwner ? (
+                              c.avatarUrl ? (
+                                <img
+                                  src={c.avatarUrl}
+                                  alt={c.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                c.name.charAt(0)
+                              )
                             ) : (
-                              <span className="text-[10px] text-slate-400 italic">Contacto directo</span>
+                              <Lock className="w-4 h-4 text-white" />
                             )}
                           </div>
+
+                          <div>
+                            {isOwner ? (
+                              <Link
+                                href={`/leads/${c.id}`}
+                                className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1"
+                              >
+                                <span>{c.name}</span>
+                                <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </Link>
+                            ) : (
+                              <div className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-default">
+                                <span>{c.name}</span>
+                                <Lock className="w-3 h-3 text-amber-500" />
+                              </div>
+                            )}
+                            <div className="mt-1">
+                              {c.jobTitle ? (
+                                <span
+                                  className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${getRoleBadgeStyle(
+                                    c.jobTitle
+                                  )} truncate max-w-[200px]`}
+                                >
+                                  {c.jobTitle}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">Contacto directo</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
+
+                        {isOwner && c.phone ? (
+                          <WhatsAppButton
+                            phone={c.phone}
+                            contactName={c.name}
+                            size="sm"
+                          />
+                        ) : !isOwner ? (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-500" />
+                            Privado
+                          </span>
+                        ) : null}
                       </div>
 
-                      <WhatsAppButton
-                        phone={c.phone}
-                        contactName={c.name}
-                        size="sm"
-                      />
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                        {isOwner ? (
+                          <span>{c.phone || 'Sin teléfono'}</span>
+                        ) : (
+                          <span className="italic text-slate-400 flex items-center gap-1 text-[10px]">
+                            Teléfono y WhatsApp protegidos
+                          </span>
+                        )}
+                        {c.assignedTo && (
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                            Asesor: {c.assignedTo.name.split(' ')[0]}
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
-                      <span>{c.phone}</span>
-                      {c.assignedTo && (
-                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
-                          Asesor: {c.assignedTo.name.split(' ')[0]}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -441,7 +471,7 @@ export default function CompanyDetailPage() {
 
                         <div className="text-right">
                           <span className={`text-sm font-black ${isWon ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
-                            ${p.amount.toLocaleString()} USD
+                            {formatMoney(p.amount || 0)}
                           </span>
                         </div>
                       </div>

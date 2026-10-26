@@ -10,6 +10,7 @@ interface WhatsAppButtonProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   customText?: string;
+  onClick?: () => void;
 }
 
 export default function WhatsAppButton({
@@ -20,6 +21,7 @@ export default function WhatsAppButton({
   size = 'md',
   className = '',
   customText,
+  onClick,
 }: WhatsAppButtonProps) {
   if (!phone) return null;
 
@@ -35,8 +37,8 @@ export default function WhatsAppButton({
   const safeName = contactName || 'Estimado(a)';
 
   const defaultMessage = projectName
-    ? `Hola ${safeName}, un gusto saludarte. Te escribe ${advisorName} de PixelMedia sobre el proyecto de ${projectName}. ¿Tienes unos minutos para conversar?`
-    : `Hola ${safeName}, un gusto saludarte. Te escribe ${advisorName} de PixelMedia.`;
+    ? `Hola ${safeName}, un gusto saludarte. Te escribe ${advisorName} de Publimatec sobre el proyecto de ${projectName}. ¿Tienes unos minutos para conversar?`
+    : `Hola ${safeName}, un gusto saludarte. Te escribe ${advisorName} de Publimatec.`;
 
   const message = encodeURIComponent(customText || defaultMessage);
   const waUrl = `https://wa.me/${cleanPhone}?text=${message}`;
@@ -52,7 +54,10 @@ export default function WhatsAppButton({
       href={waUrl}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onClick) onClick();
+      }}
       title={`Abrir WhatsApp con ${safeName}`}
       className={`inline-flex items-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm shadow-emerald-700/20 active:scale-95 ${sizeClasses[size]} ${className}`}
     >

@@ -18,9 +18,15 @@ import {
   Trash2,
   Plus,
   RotateCcw,
+  BookOpen,
 } from 'lucide-react';
 import ImageInput from '@/components/ImageInput';
-import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
+import {
+  DEFAULT_MOTIVATIONAL_QUOTES,
+  parseQuote,
+  serializeQuote,
+  MotivationalQuote,
+} from '@/lib/constants';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -41,7 +47,9 @@ export default function SettingsPage() {
   const [address, setAddress] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [motivationalQuotes, setMotivationalQuotes] = useState<string[]>([]);
-  const [newQuoteInput, setNewQuoteInput] = useState('');
+  const [newQuoteText, setNewQuoteText] = useState('');
+  const [newQuoteAuthor, setNewQuoteAuthor] = useState('');
+  const [newQuoteContext, setNewQuoteContext] = useState('');
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -94,10 +102,17 @@ export default function SettingsPage() {
   };
 
   const handleAddQuote = () => {
-    const trimmed = newQuoteInput.trim();
-    if (!trimmed) return;
-    setMotivationalQuotes([...motivationalQuotes, trimmed]);
-    setNewQuoteInput('');
+    const trimmedText = newQuoteText.trim();
+    if (!trimmedText) return;
+    const serialized = serializeQuote({
+      quote: trimmedText,
+      author: newQuoteAuthor.trim() || 'Referente en Ventas',
+      context: newQuoteContext.trim() || 'Filosofía comercial',
+    });
+    setMotivationalQuotes([...motivationalQuotes, serialized]);
+    setNewQuoteText('');
+    setNewQuoteAuthor('');
+    setNewQuoteContext('');
   };
 
   const handleRemoveQuote = (index: number) => {
@@ -218,7 +233,7 @@ export default function SettingsPage() {
                 disabled={!isAdmin}
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="ej. PixelMedia • Inversiones Publimatec"
+                placeholder="ej. PUBLIMATEC CRM"
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:opacity-60"
               />
             </div>
@@ -256,7 +271,7 @@ export default function SettingsPage() {
                 disabled={!isAdmin}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="contacto@pixelmediahn.com"
+                placeholder="contacto@publimatec.com"
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:opacity-60"
               />
             </div>
@@ -396,62 +411,112 @@ export default function SettingsPage() {
 
           {/* Form to add a new quote */}
           {isAdmin && (
-            <div className="flex flex-col sm:flex-row gap-2 pt-1">
-              <input
-                type="text"
-                value={newQuoteInput}
-                onChange={(e) => setNewQuoteInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddQuote();
-                  }
-                }}
-                placeholder="Escribe una nueva frase motivadora de ventas..."
-                className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              />
-              <button
-                type="button"
-                onClick={handleAddQuote}
-                disabled={!newQuoteInput.trim()}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Agregar Frase</span>
-              </button>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Agregar Nueva Cita o Frase Motivadora</span>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Cita o Frase de Ventas *
+                </label>
+                <textarea
+                  rows={2}
+                  value={newQuoteText}
+                  onChange={(e) => setNewQuoteText(e.target.value)}
+                  placeholder="ej. Puedes conseguir todo lo que quieras en la vida si ayudas a suficientes personas..."
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Persona Real o Libro *
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuoteAuthor}
+                    onChange={(e) => setNewQuoteAuthor(e.target.value)}
+                    placeholder="ej. Zig Ziglar o Dale Carnegie"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Quién es / Contexto (1 línea) *
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuoteContext}
+                    onChange={(e) => setNewQuoteContext(e.target.value)}
+                    placeholder="ej. Maestro mundial de ventas y autor de 'Nos vemos en la cumbre'"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddQuote}
+                  disabled={!newQuoteText.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Agregar Frase</span>
+                </button>
+              </div>
             </div>
           )}
 
           {/* List of quotes */}
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2.5 pt-2">
             {motivationalQuotes.length === 0 ? (
               <p className="text-xs text-slate-400 italic py-2">
                 No hay frases configuradas actualmente. Haz clic en "Restaurar sugeridas" o escribe una arriba.
               </p>
             ) : (
-              motivationalQuotes.map((quote, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-colors group"
-                >
-                  <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                    <span className="text-xs font-black text-indigo-500 mt-0.5">#{idx + 1}</span>
-                    <p className="text-xs text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                      "{quote}"
-                    </p>
+              motivationalQuotes.map((rawQuote, idx) => {
+                const item = parseQuote(rawQuote);
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-950/40 border border-slate-200/70 dark:border-slate-800/70 hover:border-indigo-300 dark:hover:border-indigo-800/60 transition-colors group"
+                  >
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <span className="text-xs font-black text-indigo-500 mt-0.5">#{idx + 1}</span>
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200 italic leading-relaxed">
+                          "{item.quote}"
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200/60 dark:border-indigo-800/50">
+                            {item.author}
+                          </span>
+                          {item.context && (
+                            <span className="text-slate-500 dark:text-slate-400">
+                              • {item.context}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQuote(idx)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0"
+                        title="Eliminar frase"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveQuote(idx)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                      title="Eliminar frase"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

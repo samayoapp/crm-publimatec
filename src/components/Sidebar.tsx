@@ -17,6 +17,8 @@ import {
   FileText,
   Calendar,
   X,
+  BarChart3,
+  FolderOpen,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -30,9 +32,10 @@ interface SidebarProps {
   };
   isOpen?: boolean;
   onClose?: () => void;
+  onOpenQuote?: () => void;
 }
 
-export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps) {
+export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -54,6 +57,10 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
 
   const handleLogout = async () => {
     try {
+      try {
+        sessionStorage.clear();
+        document.cookie = 'welcome_pending=; path=/; max-age=0;';
+      } catch (e) {}
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
       router.refresh();
@@ -84,6 +91,11 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
       icon: FileText,
     },
     {
+      label: 'Biblioteca Oficial',
+      href: '/resources',
+      icon: FolderOpen,
+    },
+    {
       label: 'Empresas & Cuentas',
       href: '/companies',
       icon: Building2,
@@ -97,6 +109,11 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
       label: 'Equipo Comercial',
       href: '/team',
       icon: UserCheck,
+    },
+    {
+      label: 'Reportes Gerenciales',
+      href: '/reports',
+      icon: BarChart3,
     },
     {
       label: 'Configuración',
@@ -130,16 +147,16 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
                 onClick={onClose}
                 className="block group"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    Pixel<span className="text-cyan-500">Media</span>
-                  </span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <img
+                    src="/brand/logo-publimatec-horizontal.png"
+                    alt="PUBLIMATEC CRM"
+                    className="h-8 sm:h-9 w-auto max-w-[180px] object-contain drop-shadow-sm dark:brightness-105"
+                  />
                 </div>
-                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
-                  Inversiones Publimatec S.A.
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                  <span className="text-amber-600 dark:text-amber-400 font-extrabold">CRM COMERCIAL</span>
+                  <span>• PUBLIMATEC</span>
                 </div>
               </Link>
 
@@ -155,15 +172,10 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
               </button>
             </div>
 
-            <a
-              href="https://pixelmediahn.com"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 flex items-center justify-between text-[11px] text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/40 dark:border-slate-700/40 border border-slate-200 transition-colors"
-            >
-              <span>pixelmediahn.com</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
+            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/40 dark:border-slate-700/40 border border-slate-200">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Inversiones Publimatec S.A.</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            </div>
           </div>
 
           {/* Navigation */}
@@ -192,6 +204,29 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
                 </Link>
               );
             })}
+
+            {/* Botón Frase Motivadora exclusivo en Barra Lateral */}
+            <div className="pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+              <button
+                id="btn-sidebar-quote"
+                type="button"
+                onClick={() => {
+                  onClose?.();
+                  if (onOpenQuote) {
+                    onOpenQuote();
+                  } else {
+                    window.dispatchEvent(new CustomEvent('crm-show-quote'));
+                  }
+                }}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 dark:border-amber-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xs cursor-pointer group"
+                title="Ver frase motivadora de ventas"
+              >
+                <div className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center group-hover:rotate-12 transition-transform shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                </div>
+                <span>Frase Motivadora</span>
+              </button>
+            </div>
           </nav>
         </div>
 

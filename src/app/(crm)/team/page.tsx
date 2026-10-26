@@ -12,10 +12,12 @@ import {
   Users,
   CheckCircle2,
   XCircle,
-  Sparkles,
   Trash2,
   Edit,
   AlertTriangle,
+  Clock,
+  ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
 import UserModal from '@/components/UserModal';
 
@@ -23,6 +25,7 @@ export default function TeamPage() {
   const [team, setTeam] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   // User modal state (both create & edit)
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -58,6 +61,27 @@ export default function TeamPage() {
     fetchTeam();
     fetchUser();
   }, []);
+
+  const handleApprove = async (userId: string, approved: boolean) => {
+    setApprovingId(userId);
+    try {
+      const res = await fetch('/api/team/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, approved }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al procesar');
+
+      window.dispatchEvent(new CustomEvent('crm-notification-update'));
+      window.dispatchEvent(new CustomEvent('crm-user-approved'));
+      fetchTeam();
+    } catch (err: any) {
+      alert(err.message || 'Error al procesar la aprobación');
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const toggleUserActive = async (userId: string, currentStatus: boolean) => {
     try {
@@ -170,12 +194,18 @@ export default function TeamPage() {
                         </h4>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase inline-block mt-0.5 ${
-                            member.role === 'ADMIN'
+                            !member.approved || member.status === 'PENDING_APPROVAL'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-300 dark:border-amber-500/40 animate-pulse'
+                              : member.role === 'ADMIN'
                               ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
                               : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20'
                           }`}
                         >
-                          {member.role === 'ADMIN' ? 'Dirección' : 'Asesor de Ventas'}
+                          {!member.approved || member.status === 'PENDING_APPROVAL'
+                            ? 'Pendiente de Aprobación'
+                            : member.role === 'ADMIN'
+                            ? 'Dirección'
+                            : (member.jobTitle || 'Ejecutivo de Ventas')}
                         </span>
                       </div>
                     </div>
@@ -232,6 +262,36 @@ export default function TeamPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Acciones de Aprobación para Dirección */}
+                  {(!member.approved || member.status === 'PENDING_APPROVAL') && isAdmin && (
+                    <div className="mt-3 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2">
+                      <div className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Esperando Aprobación de Dirección</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={approvingId === member.id}
+                          onClick={() => handleApprove(member.id, true)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{approvingId === member.id ? 'Aprobando...' : 'Aprobar Acceso'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={approvingId === member.id}
+                          onClick={() => handleApprove(member.id, false)}
+                          className="py-1.5 px-2.5 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Rechazar</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Performance Stats */}

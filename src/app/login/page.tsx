@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Sparkles, User, Lock, ArrowRight, AlertCircle, UserPlus } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LoginPage() {
@@ -30,7 +31,13 @@ export default function LoginPage() {
         throw new Error(data.error || 'Credenciales inválidas');
       }
 
-      router.push('/dashboard');
+      // Cada vez que alguien se loguea, debe ver el PopUp de bienvenida
+      try {
+        sessionStorage.clear();
+        sessionStorage.setItem('crm_show_welcome', 'true');
+      } catch (e) {}
+
+      router.push('/dashboard?welcome=1');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
@@ -52,19 +59,24 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold mb-4 tracking-wide uppercase">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+          <div className="flex justify-center mb-4">
+            <img
+              src="/brand/logo-publimatec-horizontal.png"
+              alt="PUBLIMATEC CRM"
+              className="h-14 sm:h-16 w-auto max-w-[260px] object-contain drop-shadow-md"
+            />
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-2 tracking-wide uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             CRM Comercial Multi-Usuario
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-2">
-            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 dark:from-indigo-400 dark:via-purple-300 dark:to-cyan-400 bg-clip-text text-transparent">
-              PixelMedia
-            </span>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            PUBLIMATEC <span className="text-amber-500">CRM</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Inversiones Publimatec S.A. de C.V.
           </p>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Gestión comercial y seguimiento de clientes
           </p>
         </div>
@@ -89,7 +101,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ej. asesor@pixelmediahn.com"
+                  placeholder="ej. asesor@publimatec.com"
                   required
                   className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 pl-10 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                 />
@@ -97,9 +109,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Contraseña
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -116,7 +136,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 group disabled:opacity-60"
+              className="w-full mt-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 group disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -130,9 +150,27 @@ export default function LoginPage() {
           </form>
         </div>
 
+        {/* Call to action for new sales executives */}
+        <div className="mt-5 p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-md backdrop-blur-sm text-center space-y-2 transition-all">
+          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <UserPlus className="w-4 h-4 text-pink-500" />
+            <span>¿Nuevo en el equipo de ventas?</span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Crea tu cuenta de <strong>Ejecutivo de Ventas</strong> con confirmación por correo y comienza hoy.
+          </p>
+          <Link
+            href="/register"
+            className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+          >
+            <span>Crear Cuenta de Ejecutivo de Ventas</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
         {/* Footer */}
         <p className="text-center text-xs text-slate-500 mt-6">
-          PixelMedia • <a href="https://pixelmediahn.com" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">pixelmediahn.com</a> • Honduras
+          PUBLIMATEC CRM • Inversiones Publimatec S.A. de C.V. • Honduras
         </p>
       </div>
     </div>

@@ -16,9 +16,11 @@ import {
   Zap,
   Check,
   Lock,
+  Clock,
 } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import ImageInput from '@/components/ImageInput';
+import { useSettings } from '@/lib/settingsContext';
 
 interface Advisor {
   id: string;
@@ -56,6 +58,7 @@ export default function LeadModal({
   defaultCompanyId,
   defaultCompanyName,
 }: LeadModalProps) {
+  const { currency, currencySymbol } = useSettings();
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -150,8 +153,12 @@ export default function LeadModal({
       setEstimatedValue('');
       setAssignedToId(currentUser?.id || '');
       setNotes('');
-      setNextFollowUp('');
-      setNextFollowUpTask('');
+      // Asignar automáticamente 48 horas como regla comercial de contacto
+      const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const defaultDateStr = `${in48h.getFullYear()}-${pad(in48h.getMonth() + 1)}-${pad(in48h.getDate())}T${pad(in48h.getHours())}:${pad(in48h.getMinutes())}`;
+      setNextFollowUp(defaultDateStr);
+      setNextFollowUpTask('Primer contacto / Seguimiento comercial (48h)');
       setShowAdvanced(false);
     }
     setError(null);
@@ -190,6 +197,10 @@ export default function LeadModal({
     setLoading(true);
     setError(null);
 
+    const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const finalFollowUp = nextFollowUp ? new Date(nextFollowUp).toISOString() : in48h.toISOString();
+    const finalTask = nextFollowUpTask.trim() || 'Primer contacto / Seguimiento comercial (48h)';
+
     const payload: any = {
       name: contactName.trim(),
       phone: phone.trim(),
@@ -201,12 +212,13 @@ export default function LeadModal({
       email: email ? email.trim() : null,
       avatarUrl: avatarUrl ? avatarUrl.trim() : null,
       assignedToId: assignedToId || null,
-      nextFollowUp: nextFollowUp ? new Date(nextFollowUp).toISOString() : null,
-      nextFollowUpTask: nextFollowUpTask.trim() || null,
+      nextFollowUp: finalFollowUp,
+      nextFollowUpTask: finalTask,
     };
 
     if (!leadToEdit && (estimatedValue || title)) {
       payload.amount = parseFloat(estimatedValue) || 0;
+      payload.currency = currency || 'HNL';
       payload.initialProposalTitle =
         title.trim() || (contactName ? `Propuesta para ${contactName.trim()}` : 'Propuesta inicial');
       payload.stage = stage;
@@ -459,7 +471,35 @@ export default function LeadModal({
             />
           </div>
 
-          {/* 5. Acordeón Opcional: Más detalles (Correo, Foto, Propuesta, Seguimiento) */}
+          {/* 5. Regla Comercial Automática: Próximo Seguimiento (48 Horas) */}
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>Próximo Seguimiento (Automático 48h)</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                    Compromiso
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Límite asignado para llamar o contactar a este prospecto y evitar inacción.
+                </p>
+              </div>
+            </div>
+            <div className="w-full sm:w-auto shrink-0">
+              <input
+                type="datetime-local"
+                value={nextFollowUp}
+                onChange={(e) => setNextFollowUp(e.target.value)}
+                className="w-full sm:w-44 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700/80 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+          </div>
+
+          {/* 6. Acordeón Opcional: Más detalles (Correo, Foto, Propuesta, Seguimiento) */}
           <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-900/30 transition-colors">
             <button
               type="button"
@@ -528,7 +568,7 @@ export default function LeadModal({
                       <input
                         type="number"
                         step="0.01"
-                        placeholder="Monto ($ USD)"
+                        placeholder={`Monto (${currencySymbol} ${currency})`}
                         value={estimatedValue}
                         onChange={(e) => setEstimatedValue(e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
@@ -597,12 +637,13 @@ export default function LeadModal({
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Fecha de Seguimiento
+                      Motivo o Tarea de Seguimiento
                     </label>
                     <input
-                      type="datetime-local"
-                      value={nextFollowUp}
-                      onChange={(e) => setNextFollowUp(e.target.value)}
+                      type="text"
+                      placeholder="ej. Enviar propuesta o coordinar reunión..."
+                      value={nextFollowUpTask}
+                      onChange={(e) => setNextFollowUpTask(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                     />
                   </div>

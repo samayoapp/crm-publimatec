@@ -3,8 +3,12 @@ import './globals.css';
 import { ThemeProvider } from '@/context/ThemeContext';
 
 export const metadata: Metadata = {
-  title: 'CRM PixelMedia | Inversiones Publimatec S.A. de C.V.',
-  description: 'Sistema Comercial y Seguimiento de Clientes para PixelMedia - Agencia Creativa',
+  title: 'PUBLIMATEC CRM | Inversiones Publimatec S.A. de C.V.',
+  description: 'Sistema Comercial y Seguimiento de Clientes para PUBLIMATEC CRM',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({

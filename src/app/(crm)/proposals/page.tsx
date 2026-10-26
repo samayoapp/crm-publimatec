@@ -25,9 +25,10 @@ import {
   RotateCcw,
   X,
 } from 'lucide-react';
-import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
+import { STAGES, STAGE_KEYS } from '@/lib/constants';
+import { useSettings } from '@/lib/settingsContext';
 
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
@@ -75,6 +76,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function ProposalsPage() {
+  const { currency, currencySymbol, formatMoney } = useSettings();
   const [proposals, setProposals] = useState<any[]>([]);
   const [advisors, setAdvisors] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -225,7 +227,7 @@ export default function ProposalsPage() {
             En Negociación
           </span>
           <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-            ${totalPipelineAmount.toLocaleString()}
+            {formatMoney(totalPipelineAmount)}
           </div>
           <span className="text-[10px] text-slate-400">{activeProposals.length} activas</span>
         </div>
@@ -235,7 +237,7 @@ export default function ProposalsPage() {
             Ventas Ganadas
           </span>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-            ${totalWonAmount.toLocaleString()}
+            {formatMoney(totalWonAmount)}
           </div>
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
             {wonProposals.length} contratos cerrados
@@ -247,9 +249,9 @@ export default function ProposalsPage() {
             Ticket Promedio
           </span>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-            ${Math.round(avgTicket).toLocaleString()}
+            {formatMoney(Math.round(avgTicket))}
           </div>
-          <span className="text-[10px] text-slate-400">USD por cotización</span>
+          <span className="text-[10px] text-slate-400">{currency} por cotización</span>
         </div>
       </div>
 
@@ -473,7 +475,7 @@ export default function ProposalsPage() {
                   <th className="py-3.5 px-4">Propuesta / Oportunidad</th>
                   <th className="py-3.5 px-4">Contacto & Cargo</th>
                   <th className="py-3.5 px-4">Empresa</th>
-                  <th className="py-3.5 px-4">Monto (USD)</th>
+                  <th className="py-3.5 px-4">Monto ({currencySymbol} {currency})</th>
                   <th className="py-3.5 px-4">Etapa Comercial</th>
                   <th className="py-3.5 px-4">Vendedor</th>
                   <th className="py-3.5 px-4 text-right">Acciones</th>
@@ -561,7 +563,7 @@ export default function ProposalsPage() {
                         <span className={`text-sm font-black tracking-tight ${
                           won ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                         }`}>
-                          ${(prop.amount || 0).toLocaleString()} USD
+                          {formatMoney(prop.amount || 0)}
                         </span>
                       </td>
 
@@ -675,9 +677,8 @@ export default function ProposalsPage() {
                       <span className={`text-base font-black tracking-tight block ${
                         won ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                       }`}>
-                        ${(prop.amount || 0).toLocaleString()}
+                        {formatMoney(prop.amount || 0)}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase">USD</span>
                     </div>
                   </div>
 

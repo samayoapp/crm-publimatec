@@ -35,20 +35,41 @@ export async function GET(
       return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404 });
     }
 
+    // Regla de Privacidad: Un asesor solo ve el teléfono/WhatsApp de sus propios contactos
+    const sanitizedContacts = company.contacts.map((c) => {
+      const canAccess = user.role === 'ADMIN' || !c.assignedToId || c.assignedToId === user.id;
+      return {
+        ...c,
+        canAccess,
+        phone: canAccess ? c.phone : null,
+        email: canAccess ? c.email : null,
+        notes: canAccess ? c.notes : null,
+      };
+    });
+
+    // Un asesor no ve las cotizaciones de otros asesores
+    const visibleProposals = user.role === 'ADMIN'
+      ? company.proposals
+      : company.proposals.filter(
+          (p) => !p.assignedToId || p.assignedToId === user.id
+        );
+
     const isWon = (s: string) => s === 'GANADO' || s === 'VENTA';
     const isLost = (s: string) => s === 'PERDIDO' || s === 'PERDIDA';
     const isActive = (s: string) => !isWon(s) && !isLost(s);
 
-    const activeProps = company.proposals.filter((p) => isActive(p.stage));
-    const wonProps = company.proposals.filter((p) => isWon(p.stage));
+    const activeProps = visibleProposals.filter((p) => isActive(p.stage));
+    const wonProps = visibleProposals.filter((p) => isWon(p.stage));
     const pipelineValue = activeProps.reduce((acc, curr) => acc + curr.amount, 0);
     const wonValue = wonProps.reduce((acc, curr) => acc + curr.amount, 0);
 
     return NextResponse.json({
       company: {
         ...company,
+        contacts: sanitizedContacts,
+        proposals: visibleProposals,
         metrics: {
-          contactsCount: company.contacts.length,
+          contactsCount: sanitizedContacts.length,
           activeProposalsCount: activeProps.length,
           wonProposalsCount: wonProps.length,
           pipelineValue,

@@ -9,8 +9,8 @@ export interface StageConfig {
 export const STAGES: Record<string, StageConfig> = {
   NUEVO: {
     key: 'NUEVO',
-    label: 'Nuevo Prospecto',
-    description: 'Recién ingresado o sin contactar',
+    label: 'Lista de Propuestas',
+    description: 'Propuestas iniciales, solicitudes o en elaboración',
     badgeClass: 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20',
     headerBorder: 'border-t-sky-500',
   },
@@ -79,10 +79,113 @@ export const ACTIVITY_TYPES = [
   { key: 'VENTA_CERRADA', label: 'Venta Cerrada', icon: 'Award' },
 ];
 
-export const DEFAULT_MOTIVATIONAL_QUOTES: string[] = [
-  'Cada llamada y cada seguimiento es una oportunidad para superar tus límites. ¡Hoy se cierran grandes tratos!',
-  'El éxito en las ventas no es cuestión de suerte, es la disciplina y pasión de aportar valor real a cada cliente.',
-  'No vendas un producto o servicio; entrega soluciones que transformen e impulsen el negocio de tu cliente.',
-  'Tu actitud y perseverancia determinan tu altitud: cada conversación de hoy construye el cierre de mañana.',
+export interface MotivationalQuote {
+  quote: string;
+  author: string;
+  context: string;
+}
+
+export const RAW_DEFAULT_QUOTES: MotivationalQuote[] = [
+  {
+    quote: 'Puedes conseguir todo lo que quieras en la vida si ayudas a suficientes personas a conseguir lo que ellas quieren.',
+    author: 'Zig Ziglar',
+    context: 'Pionero mundial del entrenamiento en ventas y autor de "Nos vemos en la cumbre"',
+  },
+  {
+    quote: 'A las personas no les gusta que les vendan, pero les apasiona comprar. Conviértete en su aliado de confianza y no en un vendedor insistente.',
+    author: 'Jeffrey Gitomer',
+    context: 'Consultor comercial internacional y autor de "La pequeña biblia de las ventas"',
+  },
+  {
+    quote: 'Cada "no" que recibes no es un rechazo personal, es simplemente un paso estadístico que te acerca al siguiente "sí".',
+    author: 'Brian Tracy',
+    context: 'Especialista en psicología comercial y autor de "Psicología de Ventas"',
+  },
+  {
+    quote: 'Trata las ventas no como un simple empleo, sino como tu propio imperio comercial. El éxito requiere una dedicación diez veces mayor.',
+    author: 'Grant Cardone',
+    context: 'Empresario, estratega de negocios y autor de "La Regla 10X"',
+  },
+  {
+    quote: 'Vender es una transferencia de certeza. Si tú crees con absoluta convicción en tu servicio, el cliente sentirá esa misma seguridad.',
+    author: 'Jordan Belfort',
+    context: 'Estratega de persuasión y ventas, autor de "El camino del Lobo"',
+  },
+  {
+    quote: 'La única manera de influir en una persona es hablar de lo que a ella le interesa y enseñarle cómo conseguirlo.',
+    author: 'Dale Carnegie',
+    context: 'Pionero en relaciones humanas y autor de "Cómo ganar amigos e influir sobre las personas"',
+  },
+  {
+    quote: 'Las grandes batallas se ganan antes de iniciar el combate: con preparación, investigación y anticipación a las necesidades del cliente.',
+    author: 'Sun Tzu',
+    context: 'Estratega y filósofo militar clásico, autor de "El Arte de la Guerra"',
+  },
+  {
+    quote: 'El mejor servicio al cliente no es resolver un problema rápido, es conocer el negocio de tu cliente tan bien que te anticipes a lo que necesitará.',
+    author: 'Chet Holmes',
+    context: 'Asesor de empresas Fortune 500 y autor de "La máquina definitiva de ventas"',
+  },
 ];
+
+export function serializeQuote(q: MotivationalQuote): string {
+  return JSON.stringify({
+    quote: q.quote.trim(),
+    author: q.author.trim(),
+    context: q.context.trim(),
+  });
+}
+
+export function parseQuote(raw: any): MotivationalQuote {
+  if (!raw) {
+    return RAW_DEFAULT_QUOTES[0];
+  }
+
+  if (typeof raw === 'object' && raw.quote) {
+    return {
+      quote: raw.quote,
+      author: raw.author || 'Autor Anónimo',
+      context: raw.context || '',
+    };
+  }
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const obj = JSON.parse(trimmed);
+        if (obj.quote || obj.text) {
+          return {
+            quote: obj.quote || obj.text || '',
+            author: obj.author || 'Autor Anónimo',
+            context: obj.context || obj.role || '',
+          };
+        }
+      } catch (e) {}
+    }
+
+    if (trimmed.includes(' | ')) {
+      const parts = trimmed.split(' | ');
+      return {
+        quote: parts[0]?.trim() || trimmed,
+        author: parts[1]?.trim() || 'Autor Anónimo',
+        context: parts[2]?.trim() || '',
+      };
+    }
+
+    return {
+      quote: trimmed,
+      author: 'Estratega Comercial',
+      context: 'Filosofía y mejores prácticas de ventas',
+    };
+  }
+
+  return {
+    quote: String(raw),
+    author: 'Estratega Comercial',
+    context: '',
+  };
+}
+
+export const DEFAULT_MOTIVATIONAL_QUOTES: string[] = RAW_DEFAULT_QUOTES.map(serializeQuote);
 

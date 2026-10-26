@@ -145,3 +145,49 @@ export function calculateCycleDuration(
   const end = closedDate ? new Date(closedDate) : new Date();
   return getDaysDiff(start, end);
 }
+
+/**
+ * Obtiene los límites de tiempo de 'fin del día de hoy' (23:59:59.999)
+ * y 'fin del día de mañana' (23:59:59.999) en la zona horaria del negocio
+ * (por defecto Honduras 'America/Tegucigalpa', UTC-6).
+ * Esto garantiza que al pasar las 12 de la noche en hora local,
+ * las tareas de seguimiento se activen automáticamente para HOY.
+ */
+export function getBusinessDayBoundaries(tz = 'America/Tegucigalpa'): {
+  startOfToday: Date;
+  endOfToday: Date;
+  endOfTomorrow: Date;
+} {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false,
+  }).formatToParts(now).reduce((acc: any, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+
+  const localDateStr = `${parts.year}-${parts.month}-${parts.day}`;
+  
+  // Honduras está en UTC-6 todo el año
+  const startOfToday = new Date(`${localDateStr}T00:00:00.000-06:00`);
+  const endOfToday = new Date(`${localDateStr}T23:59:59.999-06:00`);
+
+  const nextDay = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + 1));
+  const tomParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(nextDay).reduce((acc: any, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const tomDateStr = `${tomParts.year}-${tomParts.month}-${tomParts.day}`;
+  const endOfTomorrow = new Date(`${tomDateStr}T23:59:59.999-06:00`);
+
+  return { startOfToday, endOfToday, endOfTomorrow };
+}

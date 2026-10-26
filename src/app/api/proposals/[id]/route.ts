@@ -34,6 +34,12 @@ export async function GET(
           },
           orderBy: { createdAt: 'desc' },
         },
+        documents: {
+          include: {
+            uploadedBy: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -122,7 +128,7 @@ export async function PATCH(
 
       const isWon = data.stage === 'VENTA' || data.stage === 'GANADO';
       const description = isWon
-        ? `🎉 ¡VENTA CERRADA! La propuesta "${updatedProposal.title}" fue aprobada por un valor de $${updatedProposal.amount.toLocaleString()} USD.`
+        ? `🎉 ¡VENTA CERRADA! La propuesta "${updatedProposal.title}" fue aprobada por un valor de ${updatedProposal.currency || 'HNL'} ${updatedProposal.amount.toLocaleString()}.`
         : `Etapa de la propuesta actualizada de "${prevLabel}" a "${newLabel}".`;
 
       await prisma.activity.create({
@@ -135,10 +141,14 @@ export async function PATCH(
         },
       });
 
-      // Update contact last interaction time
+      // Update contact last interaction time and clear pending prospecting follow-up
       await prisma.contact.update({
         where: { id: updatedProposal.contactId },
-        data: { lastContactAt: new Date() },
+        data: {
+          lastContactAt: new Date(),
+          nextFollowUp: null,
+          nextFollowUpTask: null,
+        },
       });
     }
 

@@ -2,6 +2,7 @@
 
 import { Plus, Menu } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import NotificationBell from '@/components/NotificationBell';
 
 interface NavbarProps {
   title: string;
@@ -37,15 +38,22 @@ export default function Navbar({
           </button>
         )}
 
-        <div className="min-w-0">
-          <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
-              {subtitle}
-            </p>
-          )}
+        <div className="min-w-0 flex items-center gap-2.5">
+          <img
+            src="/brand/isotipo-publimatec.png"
+            alt="Publimatec"
+            className="w-7 h-7 object-contain shrink-0 hidden sm:block drop-shadow-xs"
+          />
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -53,14 +61,17 @@ export default function Navbar({
         {/* Quick Theme Toggle Icon */}
         <ThemeToggle variant="compact" />
 
+        {/* Notifications Center */}
+        <NotificationBell userRole={user.role} />
+
         {onNewLeadClick && (
           <button
             onClick={onNewLeadClick}
             className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">Nuevo Contacto</span>
-            <span className="sm:hidden font-medium">Contacto</span>
+            <span className="hidden sm:inline">Nuevo Prospecto</span>
+            <span className="sm:hidden font-medium">Prospecto</span>
           </button>
         )}
       </div>

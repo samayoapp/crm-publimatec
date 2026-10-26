@@ -81,6 +81,10 @@ export async function GET(req: Request) {
             phone: true,
             email: true,
             avatarUrl: true,
+            assignedToId: true,
+            assignedTo: {
+              select: { id: true, name: true },
+            },
           },
         },
         proposals: {
@@ -104,6 +108,22 @@ export async function GET(req: Request) {
     const isActive = (s: string) => !isWon(s) && !isLost(s);
 
     const formatted = companies.map((comp) => {
+      // Regla de Privacidad: Un asesor solo ve el teléfono/WhatsApp de sus propios contactos
+      const sanitizedContacts = comp.contacts.map((c) => {
+        const canAccess = user.role === 'ADMIN' || !c.assignedToId || c.assignedToId === user.id;
+        return {
+          id: c.id,
+          name: c.name,
+          jobTitle: c.jobTitle,
+          avatarUrl: c.avatarUrl,
+          assignedToId: c.assignedToId,
+          assignedTo: c.assignedTo,
+          canAccess,
+          phone: canAccess ? c.phone : null,
+          email: canAccess ? c.email : null,
+        };
+      });
+
       const activeProps = comp.proposals.filter((p) => isActive(p.stage));
       const wonProps = comp.proposals.filter((p) => isWon(p.stage));
       const pipelineValue = activeProps.reduce((acc, curr) => acc + curr.amount, 0);
@@ -111,8 +131,9 @@ export async function GET(req: Request) {
 
       return {
         ...comp,
+        contacts: sanitizedContacts,
         metrics: {
-          contactsCount: comp.contacts.length,
+          contactsCount: sanitizedContacts.length,
           activeProposalsCount: activeProps.length,
           wonProposalsCount: wonProps.length,
           pipelineValue,

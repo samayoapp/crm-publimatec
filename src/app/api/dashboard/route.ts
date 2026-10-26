@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
+import { getBusinessDayBoundaries } from '@/lib/timeUtils';
 
 export async function GET() {
   try {
@@ -69,18 +70,68 @@ export async function GET() {
     // Contacts count
     const totalContacts = await prisma.contact.count({ where: whereContact });
 
-    // Pending follow ups on contacts
+    // Delimitación de tiempo: HOY vs LISTA DE ESPERA (MAÑANA)
+    // Se utiliza la zona horaria de Honduras (America/Tegucigalpa) para que al pasar las 12 de la noche
+    // en hora local se activen automáticamente para LLAMAR HOY.
+    const now = new Date();
+    const { endOfToday, endOfTomorrow } = getBusinessDayBoundaries();
+
+    // 1. Pending follow ups due TODAY or OVERDUE (Single Path Action Block - LLAMAR HOY)
+    // Se excluyen los contactos que ya avanzaron a propuesta comercial o etapas posteriores
     const pendingFollowUps = await prisma.contact.findMany({
       where: {
         ...whereContact,
-        nextFollowUp: { not: null },
+        nextFollowUp: { not: null, lte: endOfToday },
+        NOT: {
+          proposals: {
+            some: {
+              stage: { in: ['PROPUESTA', 'ENVIADA', 'NEGOCIACION', 'GANADO', 'VENTA'] },
+            },
+          },
+        },
       },
       include: {
+        company: { select: { id: true, name: true } },
         assignedTo: { select: { id: true, name: true } },
+        proposals: {
+          select: { id: true, title: true, stage: true, amount: true, currency: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
       },
       orderBy: { nextFollowUp: 'asc' },
-      take: 6,
+      take: 25,
     });
+
+    // 2. Lista especial de espera: contactos marcados con "No contestó hoy" o reagendados para mañana
+    const waitingListFollowUps = await prisma.contact.findMany({
+      where: {
+        ...whereContact,
+        nextFollowUp: { gt: endOfToday, lte: endOfTomorrow },
+        NOT: {
+          proposals: {
+            some: {
+              stage: { in: ['PROPUESTA', 'ENVIADA', 'NEGOCIACION', 'GANADO', 'VENTA'] },
+            },
+          },
+        },
+      },
+      include: {
+        company: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
+        proposals: {
+          select: { id: true, title: true, stage: true, amount: true, currency: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { nextFollowUp: 'asc' },
+      take: 25,
+    });
+
+    const overdueCount = pendingFollowUps.filter(
+      (c) => c.nextFollowUp && new Date(c.nextFollowUp) < now
+    ).length;
 
     // Recent activities
     const recentActivities = await prisma.activity.findMany({
@@ -104,12 +155,53 @@ export async function GET() {
 
     const settings = await prisma.setting.findUnique({
       where: { id: 'default' },
-      select: { motivationalQuotes: true },
+      select: {
+        motivationalQuotes: true,
+        currency: true,
+        currencySymbol: true,
+        companyName: true,
+        monthlySalesTarget: true,
+      },
     });
 
     const motivationalQuotes = settings?.motivationalQuotes?.length
       ? settings.motivationalQuotes
       : DEFAULT_MOTIVATIONAL_QUOTES;
+
+    // Directores: Solicitudes de vendedores pendientes de aprobación
+    let pendingApprovalUsers: any[] = [];
+    let unreadNotificationsCount = 0;
+
+    if (user.role === 'ADMIN') {
+      pendingApprovalUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            { status: 'PENDING_APPROVAL' },
+            { approved: false },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          jobTitle: true,
+          createdAt: true,
+          status: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      unreadNotificationsCount = await prisma.notification.count({
+        where: {
+          OR: [
+            { userId: user.id },
+            { userId: null },
+          ],
+          read: false,
+        },
+      });
+    }
 
     return NextResponse.json({
       currentUser: {
@@ -117,9 +209,18 @@ export async function GET() {
         name: user.name,
         role: user.role,
       },
+      settings: {
+        currency: settings?.currency || 'HNL',
+        currencySymbol: settings?.currencySymbol || 'L',
+        companyName: settings?.companyName || 'PUBLIMATEC CRM',
+        monthlySalesTarget: settings?.monthlySalesTarget || 120000,
+      },
       motivationalQuotes,
       summary: {
         totalContacts,
+        pendingFollowUpsCount: pendingFollowUps.length,
+        waitingListCount: waitingListFollowUps.length,
+        overdueCount,
         activeCount: activeProposals.length,
         activeProposalsCount: activeProposals.length,
         pipelineValue,
@@ -128,9 +229,13 @@ export async function GET() {
         wonValue: wonSalesValue,
         wonSalesValue,
         winRate,
+        pendingApprovalCount: pendingApprovalUsers.length,
+        unreadNotificationsCount,
       },
       stageCounts,
       pendingFollowUps,
+      waitingListFollowUps,
+      pendingApprovalUsers,
       recentActivities,
     });
   } catch (error) {

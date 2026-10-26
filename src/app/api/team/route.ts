@@ -19,6 +19,9 @@ export async function GET() {
         phone: true,
         avatarUrl: true,
         active: true,
+        approved: true,
+        status: true,
+        jobTitle: true,
         createdAt: true,
         contacts: {
           select: {
@@ -80,6 +83,9 @@ export async function GET() {
         phone: u.phone,
         avatarUrl: u.avatarUrl,
         active: u.active,
+        approved: u.approved,
+        status: u.status,
+        jobTitle: u.jobTitle,
         createdAt: u.createdAt,
         totalContacts,
         totalLeads: totalContacts,

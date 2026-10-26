@@ -19,6 +19,9 @@ import {
   Plus,
   Award,
   CheckCircle2,
+  Lock,
+  Shield,
+  Paperclip,
 } from 'lucide-react';
 import { STAGES, PROPOSAL_STAGES } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -26,8 +29,10 @@ import ActivityModal from '@/components/ActivityModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
 import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDiff } from '@/lib/timeUtils';
+import { useSettings } from '@/lib/settingsContext';
 
 export default function ContactDetailPage() {
+  const { formatMoney } = useSettings();
   const params = useParams();
   const router = useRouter();
   const contactId = params.id as string;
@@ -35,6 +40,8 @@ export default function ContactDetailPage() {
   const [contact, setContact] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isRestricted, setIsRestricted] = useState(false);
+  const [restrictedContact, setRestrictedContact] = useState<any>(null);
 
   // Modals
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -44,9 +51,18 @@ export default function ContactDetailPage() {
 
   const fetchContact = () => {
     fetch(`/api/contacts/${contactId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.contact) setContact(data.contact);
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.status === 403 && data.restricted) {
+          setIsRestricted(true);
+          setRestrictedContact(data.contact);
+          setLoading(false);
+          return;
+        }
+        if (data.contact) {
+          setContact(data.contact);
+          setIsRestricted(false);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -101,6 +117,48 @@ export default function ContactDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isRestricted) {
+    return (
+      <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/10">
+          <Lock className="w-8 h-8 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900 dark:text-white">
+          Contacto Privado
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Este prospecto <strong>({restrictedContact?.name})</strong> pertenece a la cartera comercial de{' '}
+          <strong className="text-indigo-600 dark:text-indigo-400">
+            {restrictedContact?.assignedTo?.name || 'otro asesor'}
+          </strong>.
+        </p>
+        <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 text-left space-y-1">
+          <div className="font-bold flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-amber-500" />
+            <span>Política de Privacidad Comercial:</span>
+          </div>
+          <p className="text-[11px] leading-normal text-amber-800/90 dark:text-amber-300/90">
+            Por protección de cartera, el número de teléfono, enlace directo a WhatsApp y el historial de cotizaciones solo están disponibles para el asesor asignado y la Dirección Comercial.
+          </p>
+        </div>
+        <div className="pt-3 flex items-center justify-center gap-2.5">
+          <Link
+            href="/companies"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+          >
+            Ver Empresas
+          </Link>
+          <Link
+            href="/leads"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-sm transition-all"
+          >
+            Mis Prospectos
+          </Link>
+        </div>
       </div>
     );
   }
@@ -395,31 +453,49 @@ export default function ContactDetailPage() {
                           {p.title}
                         </span>
                         <span className={`text-xs font-extrabold ${isWon ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
-                          ${p.amount.toLocaleString()} USD
+                          {formatMoney(p.amount || 0)}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${stageConfig.badgeClass}`}>
-                          {stageConfig.label}
-                        </span>
-
-                        {!isWon && (
-                          <button
-                            onClick={() => handleUpdateProposalStage(p.id, 'GANADO')}
-                            className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
-                          >
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>¡Cerrar Venta!</span>
-                          </button>
-                        )}
-
-                        {isWon && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
-                            <Award className="w-3.5 h-3.5" />
-                            <span>Venta Lograda</span>
+                      <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProposal(p);
+                            setIsProposalModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition-colors"
+                        >
+                          <Paperclip className="w-3 h-3 text-indigo-500" />
+                          <span>
+                            {p.documents && p.documents.length > 0
+                              ? `${p.documents.length} doc${p.documents.length > 1 ? 's' : ''}`
+                              : 'Adjuntar PDF/PPT'}
                           </span>
-                        )}
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${stageConfig.badgeClass}`}>
+                            {stageConfig.label}
+                          </span>
+
+                          {!isWon && (
+                            <button
+                              onClick={() => handleUpdateProposalStage(p.id, 'GANADO')}
+                              className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-bold hover:underline"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>¡Cerrar!</span>
+                            </button>
+                          )}
+
+                          {isWon && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
+                              <Award className="w-3.5 h-3.5" />
+                              <span>Ganada</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
