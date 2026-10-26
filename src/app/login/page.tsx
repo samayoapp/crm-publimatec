@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, User, Lock, ArrowRight, AlertCircle, UserPlus } from 'lucide-react';
+import { User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LoginPage() {
@@ -56,33 +56,23 @@ export default function LoginPage() {
       {/* Background ambient glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-600/15 dark:via-purple-600/15 dark:to-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-sm sm:max-w-md relative z-10">
         {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-2.5">
             <img
               src="/brand/logo-publimatec-horizontal.png"
-              alt="PUBLIMATEC CRM"
-              className="h-14 sm:h-16 w-auto max-w-[260px] object-contain drop-shadow-md"
+              alt="PUBLIMATEC"
+              className="h-12 sm:h-14 w-auto max-w-[240px] object-contain drop-shadow-sm dark:brightness-105"
             />
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold mb-2 tracking-wide uppercase">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            CRM Comercial Multi-Usuario
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            PUBLIMATEC <span className="text-amber-500">CRM</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Inversiones Publimatec S.A. de C.V.
-          </p>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Gestión comercial y seguimiento de clientes
+          <p className="text-xs font-black tracking-widest text-amber-600 dark:text-amber-400 uppercase">
+            CRM COMERCIAL
           </p>
         </div>
 
         {/* Card */}
-        <div className="glass-panel rounded-2xl p-7 shadow-xl dark:shadow-2xl border border-slate-200 dark:border-slate-800/80 transition-colors">
+        <div className="glass-panel rounded-2xl p-6 sm:p-7 shadow-xl dark:shadow-2xl border border-slate-200 dark:border-slate-800/80 transition-colors">
           {error && (
             <div className="mb-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 text-sm flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -136,7 +126,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 group disabled:opacity-60 cursor-pointer"
+              className="w-full mt-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 group disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -148,29 +138,22 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-        </div>
 
-        {/* Call to action for new sales executives */}
-        <div className="mt-5 p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-md backdrop-blur-sm text-center space-y-2 transition-all">
-          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
-            <UserPlus className="w-4 h-4 text-pink-500" />
-            <span>¿Nuevo en el equipo de ventas?</span>
+          {/* Nuevo en el equipo -> Regístrate */}
+          <div className="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 text-center text-xs flex items-center justify-center gap-2">
+            <span className="text-slate-600 dark:text-slate-400">¿Nuevo en el equipo?</span>
+            <Link
+              href="/register"
+              className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 uppercase tracking-wider hover:underline"
+            >
+              Regístrate
+            </Link>
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Crea tu cuenta de <strong>Ejecutivo de Ventas</strong> con confirmación por correo y comienza hoy.
-          </p>
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
-          >
-            <span>Crear Cuenta de Ejecutivo de Ventas</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-slate-500 mt-6">
-          PUBLIMATEC CRM • Inversiones Publimatec S.A. de C.V. • Honduras
+        <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6 font-medium">
+          Inversiones Publimatec S.A. de C.V. • Honduras
         </p>
       </div>
     </div>
