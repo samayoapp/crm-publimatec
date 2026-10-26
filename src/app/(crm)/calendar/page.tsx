@@ -561,6 +561,10 @@ export default function CalendarPage() {
                             const isWon = ev.type === 'VENTA_CERRADA';
                             const isOverdue = ev.isOverdue;
                             const isToday = ev.isToday;
+                            const isMeeting =
+                              ev.title?.toLowerCase().includes('reunión') ||
+                              ev.title?.toLowerCase().includes('reunion') ||
+                              ev.title?.toLowerCase().includes('cita');
 
                             return (
                               <div
@@ -572,6 +576,8 @@ export default function CalendarPage() {
                                 className={`text-[10px] truncate px-1.5 py-0.5 rounded font-medium transition-transform hover:scale-[1.02] ${
                                   isWon
                                     ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                    : isMeeting
+                                    ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-bold'
                                     : isOverdue
                                     ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                                     : isToday
@@ -580,7 +586,7 @@ export default function CalendarPage() {
                                 }`}
                                 title={ev.title}
                               >
-                                {isWon ? '🏆 ' : ''}
+                                {isWon ? '🏆 ' : isMeeting ? '🤝 ' : ''}
                                 {ev.contactName ? `${ev.contactName}: ` : ''}
                                 {ev.title}
                               </div>
@@ -629,6 +635,10 @@ export default function CalendarPage() {
                       selectedDayDate &&
                       getEventsForDay(selectedDayDate).map((ev) => {
                         const isWon = ev.type === 'VENTA_CERRADA';
+                        const isMeeting =
+                          ev.title?.toLowerCase().includes('reunión') ||
+                          ev.title?.toLowerCase().includes('reunion') ||
+                          ev.title?.toLowerCase().includes('cita');
                         return (
                           <div
                             key={ev.id}
@@ -640,6 +650,8 @@ export default function CalendarPage() {
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                   isWon
                                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                                    : isMeeting
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
                                     : ev.isOverdue
                                     ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
                                     : ev.isToday
@@ -647,7 +659,7 @@ export default function CalendarPage() {
                                     : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
                                 }`}
                               >
-                                {isWon ? '🏆 Cierre Ganado' : ev.isOverdue ? '⚠️ Vencido' : ev.isToday ? '📅 Hoy' : '⏰ Programado'}
+                                {isWon ? '🏆 Cierre Ganado' : isMeeting ? '🤝 Reunión' : ev.isOverdue ? '⚠️ Vencido' : ev.isToday ? '📅 Hoy' : '⏰ Programado'}
                               </span>
 
                               <span className="text-[10px] text-slate-400 font-medium">
@@ -753,6 +765,10 @@ export default function CalendarPage() {
                       ) : (
                         dayEvents.map((ev) => {
                           const isWon = ev.type === 'VENTA_CERRADA';
+                          const isMeeting =
+                            ev.title?.toLowerCase().includes('reunión') ||
+                            ev.title?.toLowerCase().includes('reunion') ||
+                            ev.title?.toLowerCase().includes('cita');
                           return (
                             <div
                               key={ev.id}
@@ -764,12 +780,14 @@ export default function CalendarPage() {
                                   className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                                     isWon
                                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                                      : isMeeting
+                                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
                                       : ev.isOverdue
                                       ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
                                       : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
                                   }`}
                                 >
-                                  {isWon ? '🏆 Cierre' : ev.date ? new Date(ev.date).toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }) : 'Todo el día'}
+                                  {isWon ? '🏆 Cierre' : isMeeting ? '🤝 Reunión' : ev.date ? new Date(ev.date).toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }) : 'Todo el día'}
                                 </span>
                               </div>
 

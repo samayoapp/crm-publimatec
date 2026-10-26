@@ -132,7 +132,14 @@ export default function DashboardPage() {
 
       if (callNextDate) {
         finalNextDate = new Date(callNextDate).toISOString();
-        finalNextTask = callNextTask.trim() || 'Seguimiento programado';
+        if (callOutcome === 'REUNION') {
+          const t = callNextTask.trim() || 'Reunión acordada con el cliente';
+          finalNextTask = t.toLowerCase().includes('reunión') || t.toLowerCase().includes('reunion')
+            ? t
+            : `[Reunión] ${t}`;
+        } else {
+          finalNextTask = callNextTask.trim() || 'Seguimiento programado';
+        }
       } else if (isNoAnswer) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -256,25 +263,13 @@ export default function DashboardPage() {
         if (!res.ok) throw new Error('Error al crear propuesta');
       }
 
-      // Despejar seguimiento pendiente en el contacto para que salga de la lista de prospección
-      await fetch(`/api/contacts/${proposalModalContact.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nextFollowUp: null,
-          nextFollowUpTask: null,
-        }),
-      });
-
-      // Registrar actividad automática de avance
+      // Registrar actividad automática de avance de propuesta sin borrar reuniones o citas agendadas
       await fetch(`/api/contacts/${proposalModalContact.id}/activities`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'CAMBIO_ETAPA',
           description: `Oportunidad avanzada a etapa de PROPUESTA ENVIADA por un monto de ${formatMoney(parseFloat(proposalAmount || '0'))}.`,
-          nextFollowUp: null,
-          nextFollowUpTask: null,
         }),
       });
 
@@ -1099,7 +1094,12 @@ export default function DashboardPage() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setCallOutcome(item.id)}
+                      onClick={() => {
+                        setCallOutcome(item.id);
+                        if (item.id === 'REUNION' && !callNextTask) {
+                          setCallNextTask('Reunión acordada con el cliente');
+                        }
+                      }}
                       className={`p-2 rounded-xl text-left font-semibold border transition-all ${
                         callOutcome === item.id
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold'
@@ -1128,29 +1128,46 @@ export default function DashboardPage() {
               <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    ¿Programar siguiente seguimiento? (Opcional)
+                    {callOutcome === 'REUNION'
+                      ? '🗓️ Fecha y Hora de la Reunión Acordada *'
+                      : '¿Programar siguiente seguimiento? (Opcional)'}
                   </label>
                   <input
                     type="datetime-local"
                     value={callNextDate}
                     onChange={(e) => setCallNextDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-xl p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                      callOutcome === 'REUNION'
+                        ? 'border-purple-400 dark:border-purple-600 focus:ring-purple-500/40 bg-purple-50/20'
+                        : 'border-slate-200 dark:border-slate-700 focus:ring-emerald-500/40'
+                    }`}
                   />
                 </div>
 
                 {callNextDate ? (
                   <div>
-                    <label className="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
-                      Tarea o motivo del seguimiento
+                    <label className="block text-[11px] text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                      {callOutcome === 'REUNION'
+                        ? '🤝 Objetivo o Título de la Reunión en Calendario'
+                        : 'Tarea o motivo del seguimiento'}
                     </label>
                     <input
                       type="text"
-                      placeholder="ej. Llamar para dar seguimiento al envío de propuesta"
+                      placeholder={
+                        callOutcome === 'REUNION'
+                          ? 'ej. Presentación de propuesta web y alcance'
+                          : 'ej. Llamar para dar seguimiento al envío de propuesta'
+                      }
                       value={callNextTask}
                       onChange={(e) => setCallNextTask(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                     />
                   </div>
+                ) : callOutcome === 'REUNION' ? (
+                  <p className="text-[11px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-1.5">
+                    <span>🤝</span>
+                    <span>Indica arriba la fecha y hora para que esta <strong>Reunión</strong> quede guardada automáticamente en tu <strong>Calendario</strong>.</span>
+                  </p>
                 ) : callOutcome === 'NO_CONTESTO' ? (
                   <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
                     <span>⏳</span>
