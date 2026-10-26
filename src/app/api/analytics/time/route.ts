@@ -33,19 +33,27 @@ export async function GET(req: Request) {
       startDate.setMonth(now.getMonth() - 3);
     }
 
-    const baseWhere: any = {};
-    if (user.role === 'ASESOR') {
-      baseWhere.OR = [
-        { assignedToId: user.id },
-        { assignedToId: null },
+    const isSalesperson = user.role === 'ASESOR';
+    const effectiveAdvisorId = isSalesperson ? user.id : advisorId;
+
+    // Contact scoping: strictly advisor's contacts if ASESOR or if filtered by admin
+    const contactWhere: any = {};
+    if (effectiveAdvisorId) {
+      contactWhere.assignedToId = effectiveAdvisorId;
+    }
+
+    // Proposal scoping: strictly advisor's proposals if ASESOR or if filtered by admin
+    const proposalWhere: any = {};
+    if (effectiveAdvisorId) {
+      proposalWhere.OR = [
+        { assignedToId: effectiveAdvisorId },
+        { contact: { assignedToId: effectiveAdvisorId } },
       ];
-    } else if (advisorId) {
-      baseWhere.assignedToId = advisorId;
     }
 
     // 1. Won Proposals (Ciclo Comercial de Cierre)
     const wonWhere: any = {
-      ...baseWhere,
+      ...proposalWhere,
       stage: { in: ['GANADO', 'VENTA'] },
       ...(startDate ? { closedAt: { gte: startDate } } : {}),
     };
@@ -100,7 +108,7 @@ export async function GET(req: Request) {
 
     // 2. Active Proposals (Etapas & Tiempo de Permanencia)
     const activeWhere: any = {
-      ...baseWhere,
+      ...proposalWhere,
       stage: { notIn: ['GANADO', 'VENTA', 'PERDIDO', 'PERDIDA'] },
     };
 
@@ -154,7 +162,7 @@ export async function GET(req: Request) {
 
     // 3. Contacts Staleness Distribution
     const contacts = await prisma.contact.findMany({
-      where: baseWhere,
+      where: contactWhere,
       select: {
         id: true,
         name: true,
@@ -196,8 +204,19 @@ export async function GET(req: Request) {
         : 0;
     }
 
+    let advisorsList: any[] = [];
+    if (user.role === 'ADMIN') {
+      advisorsList = await prisma.user.findMany({
+        where: { active: true },
+        select: { id: true, name: true, role: true, avatarUrl: true },
+        orderBy: { name: 'asc' },
+      });
+    }
+
     return NextResponse.json({
       period,
+      userRole: user.role,
+      advisors: advisorsList,
       summary: {
         avgDaysToClose,
         totalWonCycles,

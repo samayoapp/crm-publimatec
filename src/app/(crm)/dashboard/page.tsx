@@ -854,7 +854,71 @@ export default function DashboardPage() {
             </h3>
           </div>
 
-      {/* 2.5 LISTA ESPECIAL DE ESPERA: NO CONTESTARON HOY (REINTENTO PROGRAMADO PARA MAÑANA) */}
+          <Link
+            href="/leads"
+            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+          >
+            Ver todos los contactos →
+          </Link>
+        </div>
+
+        {recentActivities.length === 0 ? (
+          <p className="text-center py-6 text-slate-400 text-xs italic">
+            No hay conversaciones recientes registradas en la bitácora.
+          </p>
+        ) : (
+          <div className="relative pl-6 space-y-3 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+            {recentActivities.slice(0, 6).map((act: any) => {
+              const contactObj = act.contact || act.lead;
+              const contactName = contactObj?.name || contactObj?.contactName || 'Contacto';
+              const companyName = contactObj?.companyName || '';
+
+              return (
+                <div key={act.id} className="relative group text-xs flex items-baseline justify-between gap-3">
+                  {/* Timeline dot */}
+                  <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-950 shadow-xs" />
+
+                  <div className="min-w-0 flex-1 flex flex-wrap items-baseline gap-1.5">
+                    {contactObj?.id ? (
+                      <Link
+                        href={`/leads/${contactObj.id}`}
+                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {contactName}
+                      </Link>
+                    ) : (
+                      <span className="font-bold text-slate-900 dark:text-slate-100">{contactName}</span>
+                    )}
+
+                    {companyName && (
+                      <span className="text-[10px] text-slate-400 font-medium">({companyName})</span>
+                    )}
+
+                    <span className="text-slate-600 dark:text-slate-300 font-normal">
+                      • {act.description}
+                    </span>
+                  </div>
+
+                  <div className="shrink-0 text-[10px] text-slate-400 flex items-center gap-1.5 font-medium">
+                    {act.user?.name && <span>{act.user.name.split(' ')[0]}</span>}
+                    <span>•</span>
+                    <span>
+                      {new Date(act.createdAt).toLocaleDateString('es-HN', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 4. LISTA ESPECIAL DE ESPERA: NO CONTESTARON HOY (REINTENTO PROGRAMADO PARA MAÑANA) */}
       {waitingListFollowUps.length > 0 && (
         <div className="glass-panel rounded-3xl p-6 sm:p-7 border border-amber-300/80 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/15 shadow-lg space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/80 dark:border-amber-800/50">
@@ -957,70 +1021,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-          <Link
-            href="/leads"
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
-          >
-            Ver todos los contactos →
-          </Link>
-        </div>
-
-        {recentActivities.length === 0 ? (
-          <p className="text-center py-6 text-slate-400 text-xs italic">
-            No hay conversaciones recientes registradas en la bitácora.
-          </p>
-        ) : (
-          <div className="relative pl-6 space-y-3 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-            {recentActivities.slice(0, 6).map((act: any) => {
-              const contactObj = act.contact || act.lead;
-              const contactName = contactObj?.name || contactObj?.contactName || 'Contacto';
-              const companyName = contactObj?.companyName || '';
-
-              return (
-                <div key={act.id} className="relative group text-xs flex items-baseline justify-between gap-3">
-                  {/* Timeline dot */}
-                  <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-950 shadow-xs" />
-
-                  <div className="min-w-0 flex-1 flex flex-wrap items-baseline gap-1.5">
-                    {contactObj?.id ? (
-                      <Link
-                        href={`/leads/${contactObj.id}`}
-                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                      >
-                        {contactName}
-                      </Link>
-                    ) : (
-                      <span className="font-bold text-slate-900 dark:text-slate-100">{contactName}</span>
-                    )}
-
-                    {companyName && (
-                      <span className="text-[10px] text-slate-400 font-medium">({companyName})</span>
-                    )}
-
-                    <span className="text-slate-600 dark:text-slate-300 font-normal">
-                      • {act.description}
-                    </span>
-                  </div>
-
-                  <div className="shrink-0 text-[10px] text-slate-400 flex items-center gap-1.5 font-medium">
-                    {act.user?.name && <span>{act.user.name.split(' ')[0]}</span>}
-                    <span>•</span>
-                    <span>
-                      {new Date(act.createdAt).toLocaleDateString('es-HN', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       {/* MODAL 1: REGISTRAR LLAMADA RÁPIDA (VERDE) */}
       {callModalContact && (

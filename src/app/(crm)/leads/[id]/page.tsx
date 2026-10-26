@@ -26,6 +26,7 @@ import {
 import { STAGES, PROPOSAL_STAGES } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ActivityModal from '@/components/ActivityModal';
+import ScheduleModal from '@/components/ScheduleModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
 import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDiff } from '@/lib/timeUtils';
@@ -45,6 +46,7 @@ export default function ContactDetailPage() {
 
   // Modals
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<any | null>(null);
@@ -305,7 +307,8 @@ export default function ContactDetailPage() {
 
           <button
             onClick={() => setIsActivityModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 transition-all flex items-center gap-1.5"
+            title="Registrar una interacción efectuada con este cliente"
           >
             <Clock className="w-3.5 h-3.5" />
             <span>Registrar Contacto</span>
@@ -375,40 +378,73 @@ export default function ContactDetailPage() {
             })()}
           </div>
 
-          {/* Próximo contacto */}
-          <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-2.5 transition-colors">
-            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-              Próximo Seguimiento
-            </h3>
+          {/* Próximo contacto / Seguimiento */}
+          <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-3 transition-colors">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Próximo Seguimiento</span>
+              </h3>
+              {contact.nextFollowUp && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                  Agendado
+                </span>
+              )}
+            </div>
 
             {contact.nextFollowUp ? (
-              <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-500/20 space-y-1">
-                <div className="text-xs font-bold text-slate-900 dark:text-white">
-                  {new Date(contact.nextFollowUp).toLocaleDateString('es-HN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-500/20 space-y-1">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>
+                      {new Date(contact.nextFollowUp).toLocaleDateString('es-HN', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                    {contact.nextFollowUpTask || 'Llamada o mensaje de seguimiento'}
+                  </p>
                 </div>
-                <p className="text-xs text-indigo-700 dark:text-indigo-300">
-                  {contact.nextFollowUpTask || 'Llamada o mensaje de seguimiento'}
-                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleModalOpen(true)}
+                    className="py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors text-center"
+                  >
+                    Reprogramar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsActivityModalOpen(true)}
+                    className="py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-sm transition-all text-center"
+                    title="Registrar llamada efectuada con este cliente"
+                  >
+                    Registrar Resultado
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic">
-                Sin seguimiento programado con este cliente.
-              </p>
+              <div className="space-y-2.5">
+                <p className="text-xs text-slate-400 italic">
+                  Sin seguimiento programado con este cliente.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsScheduleModalOpen(true)}
+                  className="w-full py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Programar Llamada</span>
+                </button>
+              </div>
             )}
-
-            <button
-              onClick={() => setIsActivityModalOpen(true)}
-              className="w-full py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              Programar Llamada
-            </button>
           </div>
 
           {/* Propuestas & Ventas Vinculadas */}
@@ -583,13 +619,24 @@ export default function ContactDetailPage() {
         </div>
       </div>
 
-      {/* Activity Modal */}
+      {/* Activity Modal (Interacciones Efectuadas / Pasadas) */}
       <ActivityModal
         isOpen={isActivityModalOpen}
         onClose={() => setIsActivityModalOpen(false)}
         onSaved={fetchContact}
         leadId={contact.id}
         leadTitle={contact.name + (contact.companyName ? ' (' + contact.companyName + ')' : '')}
+      />
+
+      {/* Schedule Modal (Agendar Próxima Llamada a Futuro) */}
+      <ScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        onSaved={fetchContact}
+        leadId={contact.id}
+        leadTitle={contact.name + (contact.companyName ? ' (' + contact.companyName + ')' : '')}
+        currentFollowUp={contact.nextFollowUp}
+        currentFollowUpTask={contact.nextFollowUpTask}
       />
 
       {/* Edit Contact Modal */}

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Kanban,
@@ -11,7 +11,6 @@ import {
   UserCheck,
   Building2,
   Settings,
-  LogOut,
   Sparkles,
   ExternalLink,
   FileText,
@@ -19,11 +18,11 @@ import {
   X,
   BarChart3,
   FolderOpen,
+  User,
 } from 'lucide-react';
-import ThemeToggle from '@/components/ThemeToggle';
 
 interface SidebarProps {
-  user: {
+  user?: {
     id: string;
     name: string;
     email: string;
@@ -37,7 +36,6 @@ interface SidebarProps {
 
 export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
 
   // Auto-close sidebar on route change on mobile
   useEffect(() => {
@@ -55,19 +53,7 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleLogout = async () => {
-    try {
-      try {
-        sessionStorage.clear();
-        document.cookie = 'welcome_pending=; path=/; max-age=0;';
-      } catch (e) {}
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-      router.refresh();
-    } catch (err) {
-      console.error('Error al salir', err);
-    }
-  };
+  const isAdmin = user?.role === 'ADMIN';
 
   const navItems = [
     {
@@ -111,15 +97,24 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
       icon: UserCheck,
     },
     {
-      label: 'Reportes Gerenciales',
+      label: isAdmin ? 'Reportes Gerenciales' : 'Mis Reportes',
       href: '/reports',
       icon: BarChart3,
     },
     {
-      label: 'Configuración',
-      href: '/settings',
-      icon: Settings,
+      label: 'Mi Perfil',
+      href: '/profile',
+      icon: User,
     },
+    ...(isAdmin
+      ? [
+          {
+            label: 'Configuración',
+            href: '/settings',
+            icon: Settings,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -206,7 +201,7 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
             })}
 
             {/* Botón Frase Motivadora exclusivo en Barra Lateral */}
-            <div className="pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+            <div className="pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 pb-6">
               <button
                 id="btn-sidebar-quote"
                 type="button"
@@ -229,60 +224,7 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
             </div>
           </nav>
         </div>
-
-      {/* Bottom Area: Theme Selector + User Footer */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/40 space-y-3">
-        {/* Theme Selector */}
-        <div>
-          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 mb-1.5 flex items-center justify-between">
-            <span>Tema Visual</span>
-          </div>
-          <ThemeToggle variant="pill" />
-        </div>
-
-        {/* User Card */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow border border-white/20">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                user.name.charAt(0)
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{user.name}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span
-                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
-                    user.role === 'ADMIN'
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30'
-                      : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30'
-                  }`}
-                >
-                  {user.role === 'ADMIN' ? 'Dirección' : 'Ventas'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            title="Cerrar sesión"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </aside>
-  </>
+      </aside>
+    </>
   );
 }

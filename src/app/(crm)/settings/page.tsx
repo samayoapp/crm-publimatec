@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Settings,
   DollarSign,
@@ -167,6 +168,33 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/10">
+          <ShieldAlert className="w-8 h-8 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900 dark:text-white">
+          Acceso Restringido a Dirección
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          El módulo de configuración general (parámetros de facturación, moneda institucional y metas globales) está reservado exclusivamente para la <strong>Dirección General</strong>.
+        </p>
+        <p className="text-xs text-slate-400">
+          Como ejecutivo comercial, puedes modificar tus datos personales y contraseña desde tu perfil.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+          >
+            <span>Ir a Mi Perfil de Usuario</span>
+          </Link>
+        </div>
       </div>
     );
   }

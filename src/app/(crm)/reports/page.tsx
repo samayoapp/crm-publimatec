@@ -25,12 +25,18 @@ import { useSettings } from '@/lib/settingsContext';
 export default function ReportsPage() {
   const { formatMoney } = useSettings();
   const [timePeriod, setTimePeriod] = useState('last_4_weeks');
+  const [selectedAdvisor, setSelectedAdvisor] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchReports = (period: string) => {
+  const fetchReports = (period: string, advisorId: string = selectedAdvisor) => {
     setLoading(true);
-    fetch(`/api/analytics/time?period=${period}`)
+    let url = `/api/analytics/time?period=${period}`;
+    if (advisorId) {
+      url += `&advisorId=${encodeURIComponent(advisorId)}`;
+    }
+
+    fetch(url)
       .then((res) => res.json())
       .then((d) => {
         setData(d);
@@ -43,8 +49,8 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    fetchReports(timePeriod);
-  }, [timePeriod]);
+    fetchReports(timePeriod, selectedAdvisor);
+  }, [timePeriod, selectedAdvisor]);
 
   const timeSummary = data?.summary || {
     avgDaysToClose: 0,
@@ -65,6 +71,7 @@ export default function ReportsPage() {
 
   const atRiskProposals = data?.atRiskProposals || [];
   const wonCycleDetails = data?.wonCycleDetails || [];
+  const isAdmin = data?.userRole === 'ADMIN';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -75,36 +82,61 @@ export default function ReportsPage() {
             <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
               <BarChart3 className="w-5 h-5" />
             </span>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Reportes Gerenciales & Control de Tiempos
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <span>{isAdmin ? 'Reportes Gerenciales & Control de Tiempos' : 'Mis Reportes Comerciales & Tiempos'}</span>
+              {!isAdmin && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                  Tus datos asignados
+                </span>
+              )}
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Velocidad del ciclo de ventas, permanencia por etapa del embudo y auditoría de deals en riesgo
+            {isAdmin
+              ? 'Velocidad del ciclo de ventas global o por asesor, permanencia en embudo y auditoría de deals'
+              : 'Velocidad de tus cierres, permanencia de tus cotizaciones activas y auditoría de tus prospectos'}
           </p>
         </div>
 
-        {/* Period Selector */}
-        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs font-semibold self-start sm:self-auto">
-          {[
-            { id: 'this_week', label: 'Esta Semana' },
-            { id: 'this_month', label: 'Este Mes' },
-            { id: 'last_4_weeks', label: 'Últimas 4 Semanas' },
-            { id: 'last_3_months', label: 'Trimestre' },
-            { id: 'all', label: 'Histórico' },
-          ].map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setTimePeriod(p.id)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                timePeriod === p.id
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {/* Selector de Asesor (Solo visible para Dirección) */}
+          {isAdmin && data?.advisors && data.advisors.length > 0 && (
+            <select
+              value={selectedAdvisor}
+              onChange={(e) => setSelectedAdvisor(e.target.value)}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 shadow-xs cursor-pointer"
             >
-              {p.label}
-            </button>
-          ))}
+              <option value="">👥 Todo el Equipo Comercial (Global)</option>
+              {data.advisors.map((adv: any) => (
+                <option key={adv.id} value={adv.id}>
+                  👤 {adv.name} ({adv.role === 'ADMIN' ? 'Dirección' : 'Ventas'})
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Period Selector */}
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs font-semibold">
+            {[
+              { id: 'this_week', label: 'Esta Semana' },
+              { id: 'this_month', label: 'Este Mes' },
+              { id: 'last_4_weeks', label: 'Últimas 4 Semanas' },
+              { id: 'last_3_months', label: 'Trimestre' },
+              { id: 'all', label: 'Histórico' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setTimePeriod(p.id)}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  timePeriod === p.id
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -56,8 +56,6 @@ export default function CrmShell({ user, children }: CrmShellProps) {
         />
         <div className="flex-1 flex flex-col min-w-0">
           <Navbar
-            title="PUBLIMATEC CRM"
-            subtitle="Inversiones Publimatec S.A. de C.V."
             user={user}
             onNewLeadClick={() => setIsModalOpen(true)}
             onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
