@@ -10,20 +10,38 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        jobTitle: true,
-        phone: true,
-        avatarUrl: true,
-        preferredCurrency: true,
-        createdAt: true,
-      },
-    });
+    let dbUser: any = null;
+    try {
+      dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          jobTitle: true,
+          phone: true,
+          avatarUrl: true,
+          preferredCurrency: true,
+          createdAt: true,
+        },
+      });
+    } catch {
+      dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          jobTitle: true,
+          phone: true,
+          avatarUrl: true,
+          createdAt: true,
+        },
+      });
+      if (dbUser) dbUser.preferredCurrency = 'HNL';
+    }
 
     if (!dbUser) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });

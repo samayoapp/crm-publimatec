@@ -45,10 +45,19 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
   if (!session) return null;
 
   // Verify user is still active in DB
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, preferredCurrency: true, active: true },
-  });
+  let dbUser: any = null;
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, preferredCurrency: true, active: true },
+    });
+  } catch (err: any) {
+    // Graceful fallback if preferredCurrency column is not yet migrated in DB
+    dbUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, active: true },
+    });
+  }
 
   if (!dbUser || !dbUser.active) {
     return null;
