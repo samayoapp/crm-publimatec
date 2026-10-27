@@ -19,9 +19,11 @@ export async function GET(req: Request) {
       where.isInstitutional = true;
     } else {
       where.isInstitutional = false;
-      // Si un Admin especifica un asesor objetivo, lo permite; si no, toma el usuario autenticado
-      if (user.role === 'ADMIN' && targetUserId) {
-        where.userId = targetUserId;
+      if (user.role === 'ADMIN') {
+        // El Director puede ver las carpetas personales de todos los asesores o de uno específico
+        if (targetUserId && targetUserId !== 'ALL') {
+          where.userId = targetUserId;
+        }
       } else {
         where.userId = user.id;
       }

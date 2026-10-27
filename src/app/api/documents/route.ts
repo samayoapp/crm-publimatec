@@ -26,10 +26,13 @@ export async function GET(req: Request) {
       // Biblioteca institucional: visible para todos los usuarios
       where.isInstitutional = true;
     } else if (personal) {
-      // Espacio personal: visible para el usuario actual o el asesor seleccionado si es Director
+      // Espacio personal:
       where.isInstitutional = false;
-      if (user.role === 'ADMIN' && targetUserId) {
-        where.uploadedById = targetUserId;
+      if (user.role === 'ADMIN') {
+        // El Director puede ver los archivos personales de todos los vendedores o filtrar por uno específico
+        if (targetUserId && targetUserId !== 'ALL') {
+          where.uploadedById = targetUserId;
+        }
       } else {
         where.uploadedById = user.id;
       }

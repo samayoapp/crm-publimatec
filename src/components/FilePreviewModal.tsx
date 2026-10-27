@@ -20,6 +20,7 @@ import {
   FileQuestion,
   File,
 } from 'lucide-react';
+import PdfIcon from '@/components/PdfIcon';
 
 export interface PreviewDocument {
   id?: string;
@@ -165,7 +166,7 @@ export default function FilePreviewModal({
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3 min-w-0 pr-4">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-slate-200/60 dark:border-slate-700/60">
-              {kind === 'pdf' && <FileText className="w-5 h-5 text-rose-600" />}
+              {kind === 'pdf' && <PdfIcon className="w-6 h-6" />}
               {kind === 'image' && <ImageIcon className="w-5 h-5 text-purple-600" />}
               {kind === 'excel' && <FileSpreadsheet className="w-5 h-5 text-emerald-600" />}
               {kind === 'word' && <FileText className="w-5 h-5 text-blue-600" />}

@@ -33,8 +33,11 @@ import {
   MoreVertical,
   CheckCircle2,
   Eye,
+  LayoutGrid,
+  Table as TableIcon,
 } from 'lucide-react';
 import FilePreviewModal from '@/components/FilePreviewModal';
+import PdfIcon from '@/components/PdfIcon';
 
 interface FolderItem {
   id: string;
@@ -146,6 +149,9 @@ export default function ResourcesPage() {
   // Floating File Preview Modal
   const [previewDoc, setPreviewDoc] = useState<ResourceItem | null>(null);
 
+  // View Mode: 'grid' (cards) vs 'table' (detailed table)
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
   // Toast Notification
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -161,7 +167,7 @@ export default function ResourcesPage() {
       .then((data) => {
         if (data.user) {
           setCurrentUser(data.user);
-          setSelectedAdvisorId(data.user.id);
+          setSelectedAdvisorId(data.user.role === 'ADMIN' ? 'ALL' : data.user.id);
           if (data.user.role === 'ADMIN') {
             fetch('/api/team')
               .then((res) => res.json())
@@ -281,7 +287,7 @@ export default function ResourcesPage() {
   const getDocBadge = (type: string) => {
     switch (type.toUpperCase()) {
       case 'PDF':
-        return { label: 'PDF', color: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30' };
+        return { label: 'PDF', color: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30' };
       case 'PPT':
         return { label: 'PPT / Canva', color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' };
       case 'EXCEL':
@@ -647,7 +653,7 @@ export default function ResourcesPage() {
                   className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-slate-100 shadow-lg shadow-white/10 transition-all flex items-center gap-1.5 hover:scale-[1.02]"
                 >
                   <Plus className="w-4 h-4 text-indigo-600" />
-                  <span>{activeTab === 'institutional' ? 'Publicar Recurso Oficial' : 'Subir Documento'}</span>
+                  <span>Subir un Recurso</span>
                 </button>
               </div>
             )}
@@ -720,12 +726,20 @@ export default function ResourcesPage() {
           <div className="flex items-center gap-2">
             <UserIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
-              <strong>Espacio Personal:</strong> Organiza tus carpetas privadas, cotizaciones de trabajo, fichas y enlaces propios. Nadie más puede modificar tus carpetas personales.
+              {currentUser?.role === 'ADMIN' && selectedAdvisorId === 'ALL' ? (
+                <>
+                  <strong>Supervisión de Dirección:</strong> Estás viendo los archivos y carpetas de los espacios personales de <strong>todos los vendedores</strong>.
+                </>
+              ) : (
+                <>
+                  <strong>Espacio Personal:</strong> Organiza carpetas privadas, cotizaciones de trabajo, fichas y enlaces propios.
+                </>
+              )}
             </span>
           </div>
 
           {/* Selector de Asesor para Administradores */}
-          {currentUser?.role === 'ADMIN' && teamMembers.length > 0 && (
+          {currentUser?.role === 'ADMIN' && (
             <div className="flex items-center gap-2 shrink-0">
               <Users className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
               <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-100">
@@ -734,14 +748,15 @@ export default function ResourcesPage() {
               <select
                 value={selectedAdvisorId}
                 onChange={(e) => setSelectedAdvisorId(e.target.value)}
-                className="bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-100 font-semibold focus:outline-none"
+                className="bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-100 font-semibold focus:outline-none"
               >
+                <option value="ALL">🌟 Todos los Vendedores (Vista Global)</option>
                 <option value={currentUser.id}>Mi Espacio Propio (Director)</option>
                 {teamMembers
                   .filter((m) => m.id !== currentUser.id)
                   .map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} ({m.role === 'ADMIN' ? 'Director' : 'Asesor'})
+                      {m.name} ({m.role === 'ADMIN' ? 'Director' : 'Vendedor'})
                     </option>
                   ))}
               </select>
@@ -954,20 +969,52 @@ export default function ResourcesPage() {
           ))}
         </div>
 
-        {/* Search Input */}
-        <div className="relative min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Buscar por título, tag o descripción..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Search Input */}
+          <div className="relative min-w-[240px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Buscar por título, tag o descripción..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+            />
+          </div>
+
+          {/* View Mode Switcher: Cards vs Table */}
+          <div className="flex items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-0.5 shrink-0 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Vista de Tarjetas"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px]">Tarjetas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'table'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Vista de Tabla con detalles"
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px]">Tabla</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* DOCUMENTS GRID */}
+      {/* DOCUMENTS AREA: GRID OR TABLE */}
       {loading ? (
         <div className="text-center py-16">
           <div className="w-8 h-8 mx-auto border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -991,17 +1038,277 @@ export default function ResourcesPage() {
               className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/25 transition-all inline-flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              <span>Subir Primer Documento</span>
+              <span>Subir un Recurso</span>
             </button>
           )}
         </div>
+      ) : viewMode === 'table' ? (
+        /* VISTA DE TABLA CON DETALLES */
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50/90 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
+                <th className="py-3 px-4 min-w-[280px]">Documento / Recurso</th>
+                <th className="py-3 px-3 min-w-[110px]">Tipo</th>
+                <th className="py-3 px-3 min-w-[130px]">Carpeta</th>
+                <th className="py-3 px-3 min-w-[130px]">Etiquetas</th>
+                {activeTab === 'personal' && (
+                  <th className="py-3 px-3 min-w-[140px]">Vendedor / Subido por</th>
+                )}
+                <th className="py-3 px-3 min-w-[80px]">Tamaño</th>
+                <th className="py-3 px-3 min-w-[90px]">Fecha</th>
+                <th className="py-3 px-4 text-right min-w-[150px]">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {filteredResources.map((item) => {
+                const badge = getDocBadge(item.fileType);
+                const sizeStr = formatSize(item.fileSize);
+                const folderStyle = item.folder?.color ? getFolderColorStyle(item.folder.color) : null;
+                const displayTags = item.tags && item.tags.length > 0 ? item.tags : [item.category].filter(Boolean);
+                const dateStr = item.createdAt
+                  ? new Date(item.createdAt).toLocaleDateString('es-HN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : null;
+
+                const isPdf = item.fileType === 'PDF' || item.fileUrl.toLowerCase().endsWith('.pdf');
+
+                return (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
+                  >
+                    {/* Documento */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          onClick={() => setPreviewDoc(item)}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform border ${
+                            isPdf
+                              ? 'bg-red-50 dark:bg-red-950/60 border-red-200/80 dark:border-red-900/60'
+                              : item.fileType === 'IMAGE'
+                              ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-200/80 dark:border-purple-900/60'
+                              : item.fileType === 'EXCEL'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/80 dark:border-emerald-900/60'
+                              : item.fileType === 'PPT'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200/80 dark:border-amber-900/60'
+                              : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400'
+                          }`}
+                          title="Clic para previsualizar"
+                        >
+                          {isPdf ? (
+                            <PdfIcon className="w-5 h-5" />
+                          ) : item.fileType === 'PPT' ? (
+                            <FileCode className="w-4 h-4 text-amber-500" />
+                          ) : item.fileType === 'EXCEL' ? (
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                          ) : item.fileType === 'IMAGE' ? (
+                            <ImageIcon className="w-4 h-4 text-purple-500" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-indigo-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              onClick={() => setPreviewDoc(item)}
+                              className="font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-xs block"
+                              title={item.title}
+                            >
+                              {item.title}
+                            </span>
+                            {item.version && (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                {item.version}
+                              </span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p className="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Tipo */}
+                    <td className="py-3 px-3">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border inline-block ${badge.color}`}>
+                        {badge.label}
+                      </span>
+                    </td>
+
+                    {/* Carpeta */}
+                    <td className="py-3 px-3">
+                      {item.folder ? (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border inline-flex items-center gap-1 ${
+                            folderStyle
+                              ? `${folderStyle.bg} ${folderStyle.text} ${folderStyle.border}`
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <FolderIcon className="w-3 h-3" />
+                          <span className="truncate max-w-[110px]">{item.folder.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-slate-400">
+                          Raíz
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Tags */}
+                    <td className="py-3 px-3">
+                      <div className="flex flex-wrap gap-1 max-w-[150px]">
+                        {displayTags.slice(0, 2).map((t) => (
+                          <span
+                            key={t}
+                            onClick={() => setSelectedTag(t)}
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer"
+                          >
+                            #{t}
+                          </span>
+                        ))}
+                        {displayTags.length > 2 && (
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            +{displayTags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Subido por (en espacio personal) */}
+                    {activeTab === 'personal' && (
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-[9px] shrink-0 border border-emerald-300 dark:border-emerald-700">
+                            {(item.uploadedBy?.name || 'V')[0]}
+                          </div>
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[120px]">
+                            {item.uploadedBy?.name || 'Vendedor'}
+                          </span>
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Tamaño */}
+                    <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                      {sizeStr || 'Enlace'}
+                    </td>
+
+                    {/* Fecha */}
+                    <td className="py-3 px-3 text-slate-400 whitespace-nowrap text-[11px]">
+                      {dateStr || '—'}
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Previsualizar */}
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(item)}
+                          title="Previsualizar archivo"
+                          className="p-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* WhatsApp */}
+                        <button
+                          type="button"
+                          onClick={() => setShareDoc(item)}
+                          title="Compartir por WhatsApp"
+                          className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Copiar enlace */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(item.fileUrl)}
+                          title="Copiar enlace directo"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Descargar / Enlace */}
+                        <a
+                          href={item.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.fileType === 'LINK' ? 'Abrir enlace' : 'Descargar archivo'}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          {item.fileType === 'LINK' ? (
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </a>
+
+                        {/* Mover a Carpeta */}
+                        {canEditCurrentSpace && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoveDoc(item);
+                              setTargetMoveFolderId(item.folderId || '');
+                            }}
+                            title="Mover a otra carpeta"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <FolderSymlink className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Editar metadatos */}
+                        {canEditCurrentSpace && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDocModal(item)}
+                            title="Editar tags / título"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Eliminar */}
+                        {canEditCurrentSpace && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDoc(item.id, item.title)}
+                            title="Eliminar documento"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        /* VISTA DE TARJETAS (GRID) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredResources.map((item) => {
             const badge = getDocBadge(item.fileType);
             const sizeStr = formatSize(item.fileSize);
             const folderStyle = item.folder?.color ? getFolderColorStyle(item.folder.color) : null;
             const displayTags = item.tags && item.tags.length > 0 ? item.tags : [item.category].filter(Boolean);
+            const isPdf = item.fileType === 'PDF' || item.fileUrl.toLowerCase().endsWith('.pdf');
 
             return (
               <div
@@ -1012,10 +1319,22 @@ export default function ResourcesPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div
                       onClick={() => setPreviewDoc(item)}
-                      className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border cursor-pointer hover:scale-105 active:scale-95 transition-transform ${
+                        isPdf
+                          ? 'bg-red-50 dark:bg-red-950/60 border-red-200/80 dark:border-red-900/60'
+                          : item.fileType === 'IMAGE'
+                          ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-200/80 dark:border-purple-900/60'
+                          : item.fileType === 'EXCEL'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/80 dark:border-emerald-900/60'
+                          : item.fileType === 'PPT'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200/80 dark:border-amber-900/60'
+                          : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400'
+                      }`}
                       title="Clic para previsualizar"
                     >
-                      {item.fileType === 'PPT' ? (
+                      {isPdf ? (
+                        <PdfIcon className="w-6 h-6" />
+                      ) : item.fileType === 'PPT' ? (
                         <FileCode className="w-5 h-5 text-amber-500" />
                       ) : item.fileType === 'EXCEL' ? (
                         <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
@@ -1088,7 +1407,15 @@ export default function ResourcesPage() {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>{sizeStr || 'Enlace externo'}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{sizeStr || 'Enlace externo'}</span>
+                    {activeTab === 'personal' && item.uploadedBy && (
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                        <UserIcon className="w-2.5 h-2.5" />
+                        <span>{item.uploadedBy.name.split(' ')[0]}</span>
+                      </span>
+                    )}
+                  </div>
 
                   <div className="flex items-center gap-1">
                     {/* Quick Preview Button */}

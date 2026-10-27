@@ -22,6 +22,7 @@ import {
   Eye,
 } from 'lucide-react';
 import FilePreviewModal from '@/components/FilePreviewModal';
+import PdfIcon from '@/components/PdfIcon';
 
 interface DocumentItem {
   id: string;
@@ -453,6 +454,8 @@ export default function ProposalDocumentsManager({
                           <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
                         ) : doc.fileType === 'PPT' ? (
                           <FileCode className="w-4 h-4 text-amber-500" />
+                        ) : doc.fileType === 'PDF' || doc.fileUrl.toLowerCase().endsWith('.pdf') ? (
+                          <PdfIcon className="w-5 h-5" />
                         ) : (
                           <FileText className="w-4 h-4 text-indigo-500" />
                         )}
