@@ -14,11 +14,16 @@ import {
   Shield,
   Sparkles,
   Camera,
+  Coins,
+  ArrowRightLeft,
 } from 'lucide-react';
 import ImageInput from '@/components/ImageInput';
+import { useSettings } from '@/lib/settingsContext';
+import { CURRENCIES, CurrencyCode } from '@/lib/currency';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { rates, globalCurrency } = useSettings();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -31,6 +36,7 @@ export default function ProfilePage() {
   const [jobTitle, setJobTitle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [role, setRole] = useState('ASESOR');
+  const [preferredCurrency, setPreferredCurrency] = useState('HNL');
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -49,6 +55,7 @@ export default function ProfilePage() {
         setJobTitle(data.user.jobTitle || '');
         setAvatarUrl(data.user.avatarUrl || '');
         setRole(data.user.role || 'ASESOR');
+        setPreferredCurrency(data.user.preferredCurrency || 'HNL');
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -93,6 +100,7 @@ export default function ProfilePage() {
         phone: phone.trim(),
         jobTitle: jobTitle.trim(),
         avatarUrl: avatarUrl.trim() || null,
+        preferredCurrency: preferredCurrency || 'HNL',
       };
 
       if (newPassword) {
@@ -111,15 +119,18 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Error al actualizar perfil');
       }
 
-      setSuccessMsg('✅ Tu perfil ha sido actualizado exitosamente.');
+      window.dispatchEvent(new CustomEvent('crm-profile-updated'));
+      window.dispatchEvent(new CustomEvent('crm-currency-changed', { detail: { currency: preferredCurrency } }));
+
+      setSuccessMsg('✅ Tu perfil y moneda de trabajo han sido actualizados exitosamente.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
-      // Refrescar página para sincronizar con la barra superior
+      // Refrescar para sincronizar con la barra superior y vistas
       setTimeout(() => {
         router.refresh();
-      }, 500);
+      }, 400);
 
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: any) {
@@ -304,7 +315,83 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Card 2: Seguridad & Cambio de Contraseña */}
+        {/* Card: Moneda de Trabajo Personal (Conversor Multidivisa) */}
+        <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4 transition-colors shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Moneda de Trabajo Preferida
+              </h3>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              Independiente de la configuración global ({globalCurrency})
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Elige en qué moneda deseas visualizar los montos, totales del embudo comercial y reportes de ventas.
+            Cualquier propuesta ingresada en otra divisa se traducirá automáticamente al tipo de cambio oficial del mercado.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            {[
+              { code: 'HNL', name: 'Lempiras Hondureños', symbol: 'L', flag: '🇭🇳', desc: 'Moneda nacional de Honduras' },
+              { code: 'USD', name: 'Dólares Estadounidenses', symbol: '$', flag: '🇺🇸', desc: 'Dólar de los Estados Unidos' },
+              { code: 'EUR', name: 'Euros Europeos', symbol: '€', flag: '🇪🇺', desc: 'Moneda común europea' },
+            ].map((c) => {
+              const isSelected = preferredCurrency === c.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => setPreferredCurrency(c.code)}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 ring-2 ring-indigo-500/30 shadow-md'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{c.flag}</span>
+                    <span
+                      className={`text-xs font-black px-2 py-0.5 rounded-md ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      {c.symbol} {c.code}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                      {c.name}
+                    </h4>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      {c.desc}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Banner de Tasas de Cambio en Vivo */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 font-medium">
+              <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Conversión automática activa según tipo de cambio vigente</span>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <span>1 USD ≈ {rates.HNL?.toFixed(2) || '26.85'} HNL</span>
+              <span>•</span>
+              <span>1 EUR ≈ {((rates.HNL || 26.85) / (rates.EUR || 0.894)).toFixed(2)} HNL</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Seguridad & Cambio de Contraseña */}
         <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4 transition-colors shadow-sm">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">

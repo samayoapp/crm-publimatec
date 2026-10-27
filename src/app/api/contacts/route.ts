@@ -189,6 +189,7 @@ export async function POST(req: Request) {
         data: {
           title: data.initialProposalTitle || `Propuesta inicial para ${contact.name}`,
           amount: parseFloat(data.amount) || 0,
+          currency: (data.currency || 'HNL').toUpperCase(),
           stage: initialStage,
           contactId: contact.id,
           companyId: contact.companyId,

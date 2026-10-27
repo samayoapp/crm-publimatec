@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip } from 'lucide-react';
+import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip, ArrowRightLeft } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import ProposalDocumentsManager from '@/components/ProposalDocumentsManager';
 import { useSettings } from '@/lib/settingsContext';
+import { CURRENCIES, CurrencyCode } from '@/lib/currency';
 
 interface ContactOption {
   id: string;
@@ -41,7 +42,7 @@ export default function ProposalModal({
   defaultCompanyId,
   currentUser,
 }: ProposalModalProps) {
-  const { currency, currencySymbol } = useSettings();
+  const { currency, currencySymbol, convert } = useSettings();
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [advisors, setAdvisors] = useState<AdvisorOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,7 @@ export default function ProposalModal({
   const [title, setTitle] = useState('');
   const [contactId, setContactId] = useState('');
   const [amount, setAmount] = useState('');
+  const [proposalCurrency, setProposalCurrency] = useState('HNL');
   const [stage, setStage] = useState('NUEVO');
   const [notes, setNotes] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
@@ -80,6 +82,7 @@ export default function ProposalModal({
       setTitle(proposalToEdit.title || '');
       setContactId(proposalToEdit.contactId || proposalToEdit.contact?.id || '');
       setAmount(proposalToEdit.amount ? proposalToEdit.amount.toString() : '');
+      setProposalCurrency(proposalToEdit.currency || currency || 'HNL');
       const rawStage = proposalToEdit.stage;
       setStage(rawStage === 'ENVIADA' ? 'PROPUESTA' : (rawStage || 'NUEVO'));
       setNotes(proposalToEdit.notes || '');
@@ -88,13 +91,14 @@ export default function ProposalModal({
       setTitle('');
       setContactId(defaultContactId || '');
       setAmount('');
+      setProposalCurrency(currency || 'HNL');
       setStage('NUEVO');
       setNotes('');
       setAssignedToId(currentUser?.id || '');
     }
     setActiveTab('details');
     setError(null);
-  }, [proposalToEdit, defaultContactId, isOpen, currentUser]);
+  }, [proposalToEdit, defaultContactId, isOpen, currentUser, currency]);
 
   if (!isOpen) return null;
 
@@ -112,7 +116,7 @@ export default function ProposalModal({
       title: title.trim(),
       contactId,
       amount: parseFloat(amount) || 0,
-      currency: proposalToEdit?.currency || currency || 'HNL',
+      currency: proposalCurrency,
       stage,
       notes: notes.trim() || null,
       assignedToId: assignedToId || null,
@@ -290,15 +294,32 @@ export default function ProposalModal({
             </div>
           </div>
 
-          {/* Monto y Etapa */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+          {/* Moneda, Monto y Etapa Comercial */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            {/* 1. Selector de Moneda */}
+            <div className="sm:col-span-4">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Monto de la Propuesta ({currencySymbol} {currency}) *
+                Moneda de Venta *
+              </label>
+              <select
+                value={proposalCurrency}
+                onChange={(e) => setProposalCurrency(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 font-bold"
+              >
+                <option value="HNL">🇭🇳 HNL - Lempiras (L)</option>
+                <option value="USD">🇺🇸 USD - Dólares ($)</option>
+                <option value="EUR">🇪🇺 EUR - Euros (€)</option>
+              </select>
+            </div>
+
+            {/* 2. Monto de la Propuesta */}
+            <div className="sm:col-span-4">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Monto ({CURRENCIES[proposalCurrency as CurrencyCode]?.symbol || '$'}) *
               </label>
               <div className="relative">
                 <span className="text-xs font-extrabold text-slate-400 absolute left-2.5 top-2">
-                  {currencySymbol}
+                  {CURRENCIES[proposalCurrency as CurrencyCode]?.symbol || '$'}
                 </span>
                 <input
                   type="number"
@@ -307,14 +328,15 @@ export default function ProposalModal({
                   placeholder="1500"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-2 pl-7 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-2 pl-7 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 font-semibold"
                 />
               </div>
             </div>
 
-            <div>
+            {/* 3. Etapa del Embudo */}
+            <div className="sm:col-span-4">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Estado de la Propuesta
+                Etapa de la Propuesta
               </label>
               <select
                 value={stage}
@@ -332,6 +354,33 @@ export default function ProposalModal({
               </select>
             </div>
           </div>
+
+          {/* Mini-card de Conversión Automática en Tiempo Real */}
+          {parseFloat(amount) > 0 && (
+            <div className="p-2.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-[11px] flex flex-wrap items-center justify-between gap-1.5 animate-fadeIn">
+              <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Conversión al cambio vigente:</span>
+              </span>
+              <div className="flex flex-wrap items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
+                {proposalCurrency !== 'HNL' && (
+                  <span className="text-indigo-600 dark:text-indigo-400">
+                    L {convert(parseFloat(amount), proposalCurrency, 'HNL').toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} HNL
+                  </span>
+                )}
+                {proposalCurrency !== 'USD' && (
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    $ {convert(parseFloat(amount), proposalCurrency, 'USD').toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                  </span>
+                )}
+                {proposalCurrency !== 'EUR' && (
+                  <span className="text-purple-600 dark:text-purple-400">
+                    € {convert(parseFloat(amount), proposalCurrency, 'EUR').toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Vendedor Asignado */}
           <div>

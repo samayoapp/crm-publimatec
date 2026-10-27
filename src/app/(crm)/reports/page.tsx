@@ -327,7 +327,7 @@ export default function ReportsPage() {
                         {prop.daysInStage}d en {prop.stage}
                       </span>
                       <span className="text-sm font-black text-slate-900 dark:text-white">
-                        {formatMoney(prop.amount || 0)}
+                        {formatMoney(prop.amount || 0, prop.currency)}
                       </span>
                     </div>
 

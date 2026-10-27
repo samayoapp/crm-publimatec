@@ -20,6 +20,7 @@ export async function GET() {
         jobTitle: true,
         phone: true,
         avatarUrl: true,
+        preferredCurrency: true,
         createdAt: true,
       },
     });
@@ -43,7 +44,7 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { name, phone, jobTitle, avatarUrl, currentPassword, newPassword } = body;
+    const { name, phone, jobTitle, avatarUrl, preferredCurrency, currentPassword, newPassword } = body;
 
     const updateData: any = {};
 
@@ -64,6 +65,10 @@ export async function PATCH(req: Request) {
 
     if (avatarUrl !== undefined) {
       updateData.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
+    }
+
+    if (preferredCurrency !== undefined) {
+      updateData.preferredCurrency = preferredCurrency ? preferredCurrency.trim().toUpperCase() : 'HNL';
     }
 
     // Cambio de contraseña seguro

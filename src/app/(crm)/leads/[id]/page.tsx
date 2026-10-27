@@ -33,7 +33,7 @@ import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDi
 import { useSettings } from '@/lib/settingsContext';
 
 export default function ContactDetailPage() {
-  const { formatMoney } = useSettings();
+  const { currency, formatMoney } = useSettings();
   const params = useParams();
   const router = useRouter();
   const contactId = params.id as string;
@@ -488,9 +488,16 @@ export default function ContactDetailPage() {
                         <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                           {p.title}
                         </span>
-                        <span className={`text-xs font-extrabold ${isWon ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
-                          {formatMoney(p.amount || 0)}
-                        </span>
+                        <div className="flex flex-col items-end shrink-0">
+                          <span className={`text-xs font-extrabold ${isWon ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
+                            {formatMoney(p.amount || 0, p.currency)}
+                          </span>
+                          {p.currency && p.currency !== currency && (
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                              Orig: {p.currency === 'USD' ? '$' : p.currency === 'EUR' ? '€' : 'L'} {(p.amount || 0).toLocaleString('es-HN')}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">

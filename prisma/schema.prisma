@@ -12,20 +12,21 @@ model User {
   name       String
   email      String     @unique
   password   String
-  role       String     @default("ASESOR") // "ADMIN" o "ASESOR"
-  jobTitle   String?    @default("Ejecutivo de Ventas")
-  phone      String?
-  avatarUrl  String?
-  active     Boolean    @default(true)
-  approved   Boolean    @default(true) // Aprobado por el Director
-  status     String     @default("ACTIVE") // "ACTIVE" | "PENDING_APPROVAL" | "REJECTED"
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  contacts   Contact[]  @relation("AssignedContacts")
-  proposals  Proposal[] @relation("AssignedProposals")
-  activities Activity[]
-  documents  Document[]
-  folders    Folder[]
+  role              String     @default("ASESOR") // "ADMIN" o "ASESOR"
+  jobTitle          String?    @default("Ejecutivo de Ventas")
+  phone             String?
+  avatarUrl         String?
+  preferredCurrency String?    @default("HNL") // "HNL" | "USD" | "EUR"
+  active            Boolean    @default(true)
+  approved          Boolean    @default(true) // Aprobado por el Director
+  status            String     @default("ACTIVE") // "ACTIVE" | "PENDING_APPROVAL" | "REJECTED"
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  contacts          Contact[]  @relation("AssignedContacts")
+  proposals         Proposal[] @relation("AssignedProposals")
+  activities        Activity[]
+  documents         Document[]
+  folders           Folder[]
 }
 
 model Company {
@@ -118,6 +119,8 @@ model Setting {
   logoUrl            String?
   monthlySalesTarget Float    @default(15000)
   motivationalQuotes String[] @default([])
+  exchangeRates      Json?
+  ratesUpdatedAt     DateTime?
   updatedAt          DateTime @updatedAt
 }
 

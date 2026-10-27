@@ -32,7 +32,7 @@ import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 
 export default function PipelinePage() {
-  const { formatMoney } = useSettings();
+  const { currency, currencySymbol, formatMoney, convert } = useSettings();
   const [proposals, setProposals] = useState<any[]>([]);
   const [advisors, setAdvisors] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -263,7 +263,7 @@ export default function PipelinePage() {
         {STAGE_KEYS.map((stageKey, colIndex) => {
           const config = STAGES[stageKey];
           const stageProps = proposals.filter((p) => matchStage(p.stage, stageKey));
-          const totalVal = stageProps.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+          const totalVal = stageProps.reduce((acc, curr) => acc + convert(curr.amount || 0, curr.currency), 0);
           const isWonCol = stageKey === 'GANADO';
 
           return (
@@ -320,11 +320,18 @@ export default function PipelinePage() {
                             </h4>
 
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`text-xs font-extrabold tracking-tight ${
-                                isWon ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                              }`}>
-                                {formatMoney(prop.amount || 0)}
-                              </span>
+                              <div className="flex flex-col items-end">
+                                <span className={`text-xs font-extrabold tracking-tight ${
+                                  isWon ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+                                }`}>
+                                  {formatMoney(prop.amount || 0, prop.currency)}
+                                </span>
+                                {prop.currency && prop.currency !== currency && (
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                                    Orig: {prop.currency === 'USD' ? '$' : prop.currency === 'EUR' ? '€' : 'L'} {(prop.amount || 0).toLocaleString('es-HN')}
+                                  </span>
+                                )}
+                              </div>
 
                               <button
                                 onClick={() => {

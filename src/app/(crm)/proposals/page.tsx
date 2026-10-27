@@ -76,7 +76,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function ProposalsPage() {
-  const { currency, currencySymbol, formatMoney } = useSettings();
+  const { currency, currencySymbol, formatMoney, convert } = useSettings();
   const [proposals, setProposals] = useState<any[]>([]);
   const [advisors, setAdvisors] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -187,10 +187,10 @@ export default function ProposalsPage() {
   const isLost = (s: string) => s === 'PERDIDO' || s === 'PERDIDA';
   const isActive = (s: string) => !isWon(s) && !isLost(s);
 
-  // Sorting
+  // Sorting with currency conversion
   const sortedProposals = [...proposals].sort((a, b) => {
-    if (sortBy === 'amount-desc') return (b.amount || 0) - (a.amount || 0);
-    if (sortBy === 'amount-asc') return (a.amount || 0) - (b.amount || 0);
+    if (sortBy === 'amount-desc') return convert(b.amount || 0, b.currency) - convert(a.amount || 0, a.currency);
+    if (sortBy === 'amount-asc') return convert(a.amount || 0, a.currency) - convert(b.amount || 0, b.currency);
     if (sortBy === 'date-desc') {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     }
@@ -199,13 +199,13 @@ export default function ProposalsPage() {
     return 0;
   });
 
-  // KPI Metrics
+  // KPI Metrics with currency conversion
   const totalProposals = proposals.length;
   const activeProposals = proposals.filter((p) => isActive(p.stage));
   const wonProposals = proposals.filter((p) => isWon(p.stage));
 
-  const totalPipelineAmount = activeProposals.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const totalWonAmount = wonProposals.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPipelineAmount = activeProposals.reduce((sum, p) => sum + convert(p.amount || 0, p.currency), 0);
+  const totalWonAmount = wonProposals.reduce((sum, p) => sum + convert(p.amount || 0, p.currency), 0);
   const avgTicket = totalProposals > 0 ? (totalPipelineAmount + totalWonAmount) / totalProposals : 0;
 
   return (
@@ -560,11 +560,18 @@ export default function ProposalsPage() {
 
                       {/* Monto */}
                       <td className="py-3.5 px-4">
-                        <span className={`text-sm font-black tracking-tight ${
-                          won ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                        }`}>
-                          {formatMoney(prop.amount || 0)}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className={`text-sm font-black tracking-tight ${
+                            won ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+                          }`}>
+                            {formatMoney(prop.amount || 0, prop.currency)}
+                          </span>
+                          {prop.currency && prop.currency !== currency && (
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                              Orig: {prop.currency === 'USD' ? '$' : prop.currency === 'EUR' ? '€' : 'L'} {(prop.amount || 0).toLocaleString('es-HN')}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Etapa Comercial */}
@@ -677,8 +684,13 @@ export default function ProposalsPage() {
                       <span className={`text-base font-black tracking-tight block ${
                         won ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                       }`}>
-                        {formatMoney(prop.amount || 0)}
+                        {formatMoney(prop.amount || 0, prop.currency)}
                       </span>
+                      {prop.currency && prop.currency !== currency && (
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block mt-0.5">
+                          Orig: {prop.currency === 'USD' ? '$' : prop.currency === 'EUR' ? '€' : 'L'} {(prop.amount || 0).toLocaleString('es-HN')}
+                        </span>
+                      )}
                     </div>
                   </div>
 

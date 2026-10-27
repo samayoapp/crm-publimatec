@@ -20,6 +20,8 @@ import {
   Plus,
   RotateCcw,
   BookOpen,
+  RefreshCw,
+  Coins,
 } from 'lucide-react';
 import ImageInput from '@/components/ImageInput';
 import {
@@ -37,6 +39,12 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Currency & Rates states
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 1, EUR: 0.894, HNL: 26.85 });
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
+  const [refreshingRates, setRefreshingRates] = useState(false);
+  const [ratesSuccessMsg, setRatesSuccessMsg] = useState<string | null>(null);
+
   // Form states
   const [companyName, setCompanyName] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -51,6 +59,27 @@ export default function SettingsPage() {
   const [newQuoteText, setNewQuoteText] = useState('');
   const [newQuoteAuthor, setNewQuoteAuthor] = useState('');
   const [newQuoteContext, setNewQuoteContext] = useState('');
+
+  const fetchRates = async (refresh = false) => {
+    try {
+      if (refresh) setRefreshingRates(true);
+      const res = await fetch(`/api/currency/rates${refresh ? '?refresh=true' : ''}`);
+      const data = await res.json();
+      if (data.rates) {
+        setExchangeRates(data.rates);
+        setRatesUpdatedAt(data.updatedAt || new Date().toISOString());
+        if (refresh) {
+          setRatesSuccessMsg('¡Tasas de cambio actualizadas en tiempo real!');
+          setTimeout(() => setRatesSuccessMsg(null), 4000);
+          window.dispatchEvent(new Event('crm-settings-updated'));
+        }
+      }
+    } catch (e) {
+      console.error('Error al sincronizar tasas:', e);
+    } finally {
+      if (refresh) setRefreshingRates(false);
+    }
+  };
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -93,6 +122,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
     fetchUser();
+    fetchRates();
   }, []);
 
   const handleCurrencyChange = (curr: string) => {
@@ -400,6 +430,88 @@ export default function SettingsPage() {
               <p className="text-[11px] text-slate-400 mt-1">
                 Objetivo comercial para calcular el porcentaje de logro mensual en reportes y dashboard.
               </p>
+            </div>
+
+            {/* Panel de Conversión Multimoneda y Tasas de Cambio en Vivo */}
+            <div className="md:col-span-3 mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Sistema de Conversión Multi-Moneda en Vivo
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Automático
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Cualquier vendedor puede registrar cotizaciones en USD, EUR o Lempiras. El CRM convierte automáticamente según la tasa de cambio vigente.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={refreshingRates}
+                  onClick={() => fetchRates(true)}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 rounded-xl transition-all border border-indigo-200 dark:border-indigo-800 disabled:opacity-50 self-start sm:self-auto cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshingRates ? 'animate-spin' : ''}`} />
+                  <span>{refreshingRates ? 'Sincronizando...' : 'Actualizar Tasas Ahora'}</span>
+                </button>
+              </div>
+
+              {ratesSuccessMsg && (
+                <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{ratesSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Grid de Tasas */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Dólar Estadounidense</div>
+                  <div className="text-base font-black text-slate-900 dark:text-white">
+                    1 USD <span className="text-xs font-normal text-slate-400">= Base (1.00 $)</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-600 font-medium mt-1">Moneda de referencia internacional</div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Lempiras Hondureñas (HNL)</div>
+                  <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                    L {(exchangeRates?.HNL || 26.85).toFixed(2)}
+                    <span className="text-xs font-normal text-slate-400"> / USD</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    1 EUR ≈ L {((exchangeRates?.HNL || 26.85) / (exchangeRates?.EUR || 0.894)).toFixed(2)} HNL
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Euro Europeo (EUR)</div>
+                  <div className="text-base font-black text-purple-600 dark:text-purple-400">
+                    € {(exchangeRates?.EUR || 0.894).toFixed(3)}
+                    <span className="text-xs font-normal text-slate-400"> / USD</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    1 EUR ≈ ${(1 / (exchangeRates?.EUR || 0.894)).toFixed(2)} USD
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-400 mt-3 pt-2">
+                <span>
+                  Última sincronización con mercado de divisas: {ratesUpdatedAt ? new Date(ratesUpdatedAt).toLocaleString() : 'Cargando...'}
+                </span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                  Actualización automática cada 6 horas
+                </span>
+              </div>
             </div>
           </div>
         </div>

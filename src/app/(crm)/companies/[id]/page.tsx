@@ -75,7 +75,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function CompanyDetailPage() {
-  const { formatMoney } = useSettings();
+  const { formatMoney, formatOriginal, userCurrency } = useSettings();
   const params = useParams();
   const router = useRouter();
   const companyId = params.id as string;
@@ -282,7 +282,7 @@ export default function CompanyDetailPage() {
             <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-500/20 text-center min-w-[130px]">
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase block">Ventas Ganadas</span>
               <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                {formatMoney(company.metrics?.wonValue || 0)}
+                {formatMoney(company.metrics?.wonValue || 0, company.metrics?.currency)}
               </span>
             </div>
           </div>
@@ -471,8 +471,13 @@ export default function CompanyDetailPage() {
 
                         <div className="text-right">
                           <span className={`text-sm font-black ${isWon ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
-                            {formatMoney(p.amount || 0)}
+                            {formatMoney(p.amount || 0, p.currency)}
                           </span>
+                          {p.currency && p.currency !== userCurrency && (
+                            <div className="text-[10px] text-slate-400 font-medium">
+                              Orig: {formatOriginal(p.amount || 0, p.currency)}
+                            </div>
+                          )}
                         </div>
                       </div>
 

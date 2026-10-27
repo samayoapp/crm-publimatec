@@ -81,6 +81,7 @@ export default function LeadModal({
   const [title, setTitle] = useState('');
   const [stage, setStage] = useState('NUEVO');
   const [estimatedValue, setEstimatedValue] = useState('');
+  const [proposalCurrency, setProposalCurrency] = useState('HNL');
   const [assignedToId, setAssignedToId] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState('');
   const [nextFollowUpTask, setNextFollowUpTask] = useState('');
@@ -152,6 +153,7 @@ export default function LeadModal({
       setTitle('');
       setStage('NUEVO');
       setEstimatedValue('');
+      setProposalCurrency(currency || 'HNL');
       setAssignedToId(currentUser?.id || '');
       setNotes('');
       // Todo nuevo contacto entra de inmediato con prioridad para LLAMAR HOY
@@ -163,7 +165,7 @@ export default function LeadModal({
       setShowAdvanced(false);
     }
     setError(null);
-  }, [leadToEdit, isOpen, currentUser, defaultCompanyId, defaultCompanyName]);
+  }, [leadToEdit, isOpen, currentUser, defaultCompanyId, defaultCompanyName, currency]);
 
   if (!isOpen) return null;
 
@@ -219,7 +221,7 @@ export default function LeadModal({
 
     if (!leadToEdit && (estimatedValue || title)) {
       payload.amount = parseFloat(estimatedValue) || 0;
-      payload.currency = currency || 'HNL';
+      payload.currency = proposalCurrency || currency || 'HNL';
       payload.initialProposalTitle =
         title.trim() || (contactName ? `Propuesta para ${contactName.trim()}` : 'Propuesta inicial');
       payload.stage = stage;
@@ -555,8 +557,8 @@ export default function LeadModal({
                     <DollarSign className="w-3.5 h-3.5 text-indigo-500" />
                     Cotización / Propuesta Inicial (Opcional)
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div className="sm:col-span-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div className="sm:col-span-4">
                       <input
                         type="text"
                         placeholder="Título ej. Branding 2026"
@@ -565,17 +567,28 @@ export default function LeadModal({
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                       />
                     </div>
-                    <div>
+                    <div className="sm:col-span-3">
+                      <select
+                        value={proposalCurrency}
+                        onChange={(e) => setProposalCurrency(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                      >
+                        <option value="HNL">🇭🇳 HNL (L)</option>
+                        <option value="USD">🇺🇸 USD ($)</option>
+                        <option value="EUR">🇪🇺 EUR (€)</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
                       <input
                         type="number"
                         step="0.01"
-                        placeholder={`Monto (${currencySymbol} ${currency})`}
+                        placeholder="Monto"
                         value={estimatedValue}
                         onChange={(e) => setEstimatedValue(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 font-semibold"
                       />
                     </div>
-                    <div>
+                    <div className="sm:col-span-3">
                       <select
                         value={stage}
                         onChange={(e) => setStage(e.target.value)}

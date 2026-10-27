@@ -78,7 +78,7 @@ const getRoleBadgeStyle = (title?: string | null) => {
 };
 
 export default function ContactsListPage() {
-  const { currencySymbol, formatMoney } = useSettings();
+  const { currencySymbol, formatMoney, convert } = useSettings();
   const [contacts, setContacts] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -155,7 +155,7 @@ export default function ContactsListPage() {
     c.proposals?.some((p: any) => p.stage === 'VENTA' || p.stage === 'GANADO');
 
   const getContactAmount = (c: any) =>
-    c.proposals?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+    c.proposals?.reduce((sum: number, p: any) => sum + convert(p.amount || 0, p.currency), 0) || 0;
 
   // Filtered & Sorted contacts
   const filteredAndSortedContacts = contacts
@@ -586,7 +586,7 @@ export default function ContactsListPage() {
                                     {p.title}
                                   </span>
                                   <span className="font-bold text-slate-600 dark:text-slate-400">
-                                    ({formatMoney(p.amount || 0)})
+                                    ({formatMoney(p.amount || 0, p.currency)})
                                   </span>
                                 </div>
                               );

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 import { getBusinessDayBoundaries } from '@/lib/timeUtils';
+import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
 
 export async function GET() {
   try {
@@ -10,6 +11,14 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const targetCurrency = user.preferredCurrency || 'HNL';
+
+    const setting = await prisma.setting.findUnique({
+      where: { id: 'default' },
+      select: { exchangeRates: true },
+    });
+    const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     const isAdvisor = user.role === 'ASESOR';
     const whereProp: any = isAdvisor
@@ -39,8 +48,14 @@ export async function GET() {
     const wonSales = proposals.filter((p) => isWonStage(p.stage));
     const lostProposals = proposals.filter((p) => isLostStage(p.stage));
 
-    const pipelineValue = activeProposals.reduce((acc, curr) => acc + curr.amount, 0);
-    const wonSalesValue = wonSales.reduce((acc, curr) => acc + curr.amount, 0);
+    const pipelineValue = activeProposals.reduce(
+      (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+      0
+    );
+    const wonSalesValue = wonSales.reduce(
+      (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+      0
+    );
 
     const closedTotal = wonSales.length + lostProposals.length;
     const winRate = closedTotal > 0 ? Math.round((wonSales.length / closedTotal) * 100) : 0;
@@ -63,7 +78,7 @@ export async function GET() {
 
       if (stageCounts[key]) {
         stageCounts[key].count += 1;
-        stageCounts[key].value += p.amount;
+        stageCounts[key].value += convertCurrency(p.amount, p.currency, targetCurrency, rates);
       }
     });
 
@@ -217,6 +232,7 @@ export async function GET() {
       },
       motivationalQuotes,
       summary: {
+        currency: targetCurrency,
         totalContacts,
         pendingFollowUpsCount: pendingFollowUps.length,
         waitingListCount: waitingListFollowUps.length,

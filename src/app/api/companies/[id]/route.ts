@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
 
 export async function GET(
   req: Request,
@@ -11,6 +12,13 @@ export async function GET(
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const targetCurrency = user.preferredCurrency || 'HNL';
+    const setting = await prisma.setting.findUnique({
+      where: { id: 'default' },
+      select: { exchangeRates: true },
+    });
+    const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     const company = await prisma.company.findUnique({
       where: { id: params.id },
@@ -60,8 +68,14 @@ export async function GET(
 
     const activeProps = visibleProposals.filter((p) => isActive(p.stage));
     const wonProps = visibleProposals.filter((p) => isWon(p.stage));
-    const pipelineValue = activeProps.reduce((acc, curr) => acc + curr.amount, 0);
-    const wonValue = wonProps.reduce((acc, curr) => acc + curr.amount, 0);
+    const pipelineValue = activeProps.reduce(
+      (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+      0
+    );
+    const wonValue = wonProps.reduce(
+      (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+      0
+    );
 
     return NextResponse.json({
       company: {
@@ -74,6 +88,7 @@ export async function GET(
           wonProposalsCount: wonProps.length,
           pipelineValue,
           wonValue,
+          currency: targetCurrency,
         },
       },
     });

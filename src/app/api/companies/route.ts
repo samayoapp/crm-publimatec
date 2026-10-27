@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
 
 export async function GET(req: Request) {
   try {
@@ -8,6 +9,13 @@ export async function GET(req: Request) {
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const targetCurrency = user.preferredCurrency || 'HNL';
+    const setting = await prisma.setting.findUnique({
+      where: { id: 'default' },
+      select: { exchangeRates: true },
+    });
+    const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
@@ -93,6 +101,7 @@ export async function GET(req: Request) {
             title: true,
             stage: true,
             amount: true,
+            currency: true,
           },
         },
         _count: {
@@ -126,8 +135,14 @@ export async function GET(req: Request) {
 
       const activeProps = comp.proposals.filter((p) => isActive(p.stage));
       const wonProps = comp.proposals.filter((p) => isWon(p.stage));
-      const pipelineValue = activeProps.reduce((acc, curr) => acc + curr.amount, 0);
-      const wonValue = wonProps.reduce((acc, curr) => acc + curr.amount, 0);
+      const pipelineValue = activeProps.reduce(
+        (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+        0
+      );
+      const wonValue = wonProps.reduce(
+        (acc, curr) => acc + convertCurrency(curr.amount, curr.currency, targetCurrency, rates),
+        0
+      );
 
       return {
         ...comp,
@@ -138,6 +153,7 @@ export async function GET(req: Request) {
           wonProposalsCount: wonProps.length,
           pipelineValue,
           wonValue,
+          currency: targetCurrency,
         },
       };
     });

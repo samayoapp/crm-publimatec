@@ -779,7 +779,7 @@ export default function DashboardPage() {
             En Negociación
           </span>
           <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1 truncate">
-            {formatMoney(summary?.pipelineValue || 0)}
+            {formatMoney(summary?.pipelineValue || 0, summary?.currency || currency)}
           </div>
           <span className="text-[10px] text-slate-400 block mt-1">{currency} en juego en cotizaciones</span>
         </div>
@@ -793,7 +793,7 @@ export default function DashboardPage() {
             {summary?.wonCount || 0}
           </div>
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1 truncate">
-            {formatMoney(summary?.wonSalesValue ?? summary?.wonValue ?? 0)} cerrados
+            {formatMoney(summary?.wonSalesValue ?? summary?.wonValue ?? 0, summary?.currency || currency)} cerrados
           </span>
         </div>
       </div>
@@ -907,7 +907,7 @@ export default function DashboardPage() {
 
                       {latestProposal && (
                         <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                          Etapa: {latestProposal.stage} ({formatMoney(latestProposal.amount || 0)})
+                          Etapa: {latestProposal.stage} ({formatMoney(latestProposal.amount || 0, latestProposal.currency)})
                         </span>
                       )}
                     </div>
@@ -1137,7 +1137,7 @@ export default function DashboardPage() {
                       )}
                       {latestProposal && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                          {latestProposal.stage}: {formatMoney(latestProposal.amount || 0)}
+                          {latestProposal.stage}: {formatMoney(latestProposal.amount || 0, latestProposal.currency)}
                         </span>
                       )}
                     </div>

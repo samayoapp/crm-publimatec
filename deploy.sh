@@ -25,7 +25,14 @@ fi
 echo "📥 2/4. Descargando última versión de código desde GitHub..."
 git pull origin main
 
-echo "🛡️ 3/4. Verificando esquema de base de datos..."
+echo "🛡️ 3/4. Verificando y sincronizando esquema de base de datos de forma segura..."
+docker exec -i publimatec_crm_db psql -U publimatec_user -d publimatec_crm -c '
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "preferredCurrency" TEXT DEFAULT '\''HNL'\'';
+ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "exchangeRates" JSONB;
+ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "ratesUpdatedAt" TIMESTAMP(3) WITHOUT TIME ZONE;
+ALTER TABLE "Proposal" ADD COLUMN IF NOT EXISTS "currency" TEXT DEFAULT '\''USD'\'';
+' || true
+
 # prisma generate dentro del contenedor para actualizar los tipos
 docker exec publimatec_crm_app npx prisma generate
 

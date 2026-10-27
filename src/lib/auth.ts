@@ -35,7 +35,7 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
   }
 }
 
-export async function getCurrentUser(): Promise<(UserSession & { phone?: string | null; avatarUrl?: string | null }) | null> {
+export async function getCurrentUser(): Promise<(UserSession & { phone?: string | null; avatarUrl?: string | null; preferredCurrency?: string | null }) | null> {
   const cookieStore = cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -47,7 +47,7 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
   // Verify user is still active in DB
   const dbUser = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, active: true },
+    select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, preferredCurrency: true, active: true },
   });
 
   if (!dbUser || !dbUser.active) {
@@ -61,6 +61,7 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
     role: dbUser.role,
     phone: dbUser.phone,
     avatarUrl: dbUser.avatarUrl,
+    preferredCurrency: dbUser.preferredCurrency || 'HNL',
   };
 }
 
