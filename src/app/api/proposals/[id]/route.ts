@@ -49,9 +49,7 @@ export async function GET(
     }
 
     if (user.role !== 'ADMIN') {
-      const isOwner =
-        proposal.assignedToId === user.id ||
-        proposal.contact?.assignedToId === user.id;
+      const isOwner = proposal.assignedToId === user.id;
       if (!isOwner) {
         return NextResponse.json(
           { error: 'No tienes autorización para ver propuestas de otros vendedores' },
@@ -87,9 +85,7 @@ export async function PATCH(
     }
 
     if (user.role !== 'ADMIN') {
-      const isOwner =
-        currentProp.assignedToId === user.id ||
-        currentProp.contact?.assignedToId === user.id;
+      const isOwner = currentProp.assignedToId === user.id;
       if (!isOwner) {
         return NextResponse.json(
           { error: 'No tienes autorización para modificar propuestas de otros vendedores' },
@@ -204,9 +200,7 @@ export async function DELETE(
     }
 
     if (user.role !== 'ADMIN') {
-      const isOwner =
-        currentProp.assignedToId === user.id ||
-        currentProp.contact?.assignedToId === user.id;
+      const isOwner = currentProp.assignedToId === user.id;
       if (!isOwner) {
         return NextResponse.json(
           { error: 'No tienes autorización para eliminar propuestas de otros vendedores' },

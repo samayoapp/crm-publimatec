@@ -58,9 +58,7 @@ export async function GET(
     // Un vendedor solo ve sus propias cotizaciones, no las de otros vendedores
     const visibleProposals = user.role === 'ADMIN'
       ? company.proposals
-      : company.proposals.filter(
-          (p) => p.assignedToId === user.id || p.contact?.assignedToId === user.id
-        );
+      : company.proposals.filter((p) => p.assignedToId === user.id);
 
     const isWon = (s: string) => s === 'GANADO' || s === 'VENTA';
     const isLost = (s: string) => s === 'PERDIDO' || s === 'PERDIDA';

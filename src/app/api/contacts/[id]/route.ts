@@ -71,9 +71,7 @@ export async function GET(
 
     const visibleProposals = user.role === 'ADMIN'
       ? contact.proposals
-      : contact.proposals.filter(
-          (p) => p.assignedToId === user.id || contact.assignedToId === user.id
-        );
+      : contact.proposals.filter((p) => p.assignedToId === user.id);
 
     return NextResponse.json({
       contact: {

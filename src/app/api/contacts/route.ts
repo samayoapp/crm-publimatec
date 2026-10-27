@@ -56,14 +56,7 @@ export async function GET(req: Request) {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
         proposals: {
-          where: user.role === 'ADMIN'
-            ? {}
-            : {
-                OR: [
-                  { assignedToId: user.id },
-                  { contact: { assignedToId: user.id } },
-                ],
-              },
+          where: user.role === 'ADMIN' ? {} : { assignedToId: user.id },
           select: {
             id: true,
             title: true,

@@ -101,10 +101,7 @@ export async function GET(req: Request) {
       closedAt: { not: null },
     };
     if (user.role !== 'ADMIN') {
-      proposalWhere.OR = [
-        { assignedToId: user.id },
-        { contact: { assignedToId: user.id } },
-      ];
+      proposalWhere.assignedToId = user.id;
     } else if (advisorId) {
       proposalWhere.assignedToId = advisorId;
     }

@@ -45,10 +45,7 @@ export async function GET(req: Request) {
     // Proposal scoping: strictly advisor's proposals if ASESOR or if filtered by admin
     const proposalWhere: any = {};
     if (effectiveAdvisorId) {
-      proposalWhere.OR = [
-        { assignedToId: effectiveAdvisorId },
-        { contact: { assignedToId: effectiveAdvisorId } },
-      ];
+      proposalWhere.assignedToId = effectiveAdvisorId;
     }
 
     // 1. Won Proposals (Ciclo Comercial de Cierre)

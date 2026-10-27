@@ -21,14 +21,7 @@ export async function GET() {
     const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     const isAdvisor = user.role !== 'ADMIN';
-    const whereProp: any = isAdvisor
-      ? {
-          OR: [
-            { assignedToId: user.id },
-            { contact: { assignedToId: user.id } },
-          ],
-        }
-      : {};
+    const whereProp: any = isAdvisor ? { assignedToId: user.id } : {};
     const whereContact: any = isAdvisor ? { assignedToId: user.id } : {};
 
     // Get all proposals
@@ -154,8 +147,8 @@ export async function GET() {
         ? {
             OR: [
               { userId: user.id },
-              { contact: { assignedToId: user.id } },
               { proposal: { assignedToId: user.id } },
+              { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
             ],
           }
         : {},

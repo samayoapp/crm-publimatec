@@ -47,11 +47,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
       }
 
-      const isOwner =
-        user.role === 'ADMIN' ||
-        !prop.assignedToId ||
-        prop.assignedToId === user.id ||
-        prop.contact?.assignedToId === user.id;
+      const isOwner = user.role === 'ADMIN' || prop.assignedToId === user.id;
 
       if (!isOwner) {
         return NextResponse.json(
@@ -200,7 +196,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
       }
 
-      const isOwner = user.role === 'ADMIN' || !prop.assignedToId || prop.assignedToId === user.id;
+      const isOwner = user.role === 'ADMIN' || prop.assignedToId === user.id;
       if (!isOwner) {
         return NextResponse.json(
           { error: 'No tienes autorización para adjuntar documentos en esta propuesta' },

@@ -21,25 +21,9 @@ export async function GET(req: Request) {
     if (contactId) where.contactId = contactId;
 
     if (user.role !== 'ADMIN') {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: [
-            { assignedToId: user.id },
-            { contact: { assignedToId: user.id } },
-          ],
-        },
-      ];
+      where.assignedToId = user.id;
     } else if (assignedToId) {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: [
-            { assignedToId: assignedToId },
-            { contact: { assignedToId: assignedToId } },
-          ],
-        },
-      ];
+      where.assignedToId = assignedToId;
     }
 
     if (search) {
