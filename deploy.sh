@@ -26,7 +26,12 @@ echo "📥 2/4. Descargando última versión de código desde GitHub..."
 git pull origin main
 
 echo "🛡️ 3/4. Verificando y sincronizando esquema de base de datos de forma segura..."
-docker exec -i publimatec_crm_db psql -U publimatec_user -d publimatec_crm < prisma/migrations/add_currency_columns.sql || true
+for sql_file in prisma/migrations/*.sql; do
+    if [ -f "$sql_file" ]; then
+        echo "   -> Aplicando migración: $(basename "$sql_file")"
+        docker exec -i publimatec_crm_db psql -U publimatec_user -d publimatec_crm < "$sql_file" || true
+    fi
+done
 
 # prisma generate dentro del contenedor para actualizar los tipos
 docker exec publimatec_crm_app npx prisma generate
