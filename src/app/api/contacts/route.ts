@@ -20,11 +20,8 @@ export async function GET(req: Request) {
       where.companyId = companyId;
     }
 
-    if (user.role === 'ASESOR') {
-      where.OR = [
-        { assignedToId: user.id },
-        { assignedToId: null },
-      ];
+    if (user.role !== 'ADMIN') {
+      where.assignedToId = user.id;
     } else if (assignedToId) {
       where.assignedToId = assignedToId;
     }
@@ -59,11 +56,20 @@ export async function GET(req: Request) {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
         proposals: {
+          where: user.role === 'ADMIN'
+            ? {}
+            : {
+                OR: [
+                  { assignedToId: user.id },
+                  { contact: { assignedToId: user.id } },
+                ],
+              },
           select: {
             id: true,
             title: true,
             amount: true,
             stage: true,
+            currency: true,
           },
         },
         activities: {

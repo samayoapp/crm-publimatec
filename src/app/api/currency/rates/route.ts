@@ -5,7 +5,7 @@ import { DEFAULT_EXCHANGE_RATES, CurrencyCode } from '@/lib/currency';
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
-export async function fetchLiveExchangeRates(): Promise<{
+async function fetchLiveExchangeRates(): Promise<{
   rates: Record<string, number>;
   updatedAt: Date;
   success: boolean;

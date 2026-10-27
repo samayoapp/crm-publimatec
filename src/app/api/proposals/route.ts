@@ -20,16 +20,25 @@ export async function GET(req: Request) {
     if (stage) where.stage = stage;
     if (contactId) where.contactId = contactId;
 
-    if (user.role === 'ASESOR') {
-      where.OR = [
-        { assignedToId: user.id },
-        { contact: { assignedToId: user.id } },
-        { AND: [{ assignedToId: null }, { contact: { assignedToId: null } }] },
+    if (user.role !== 'ADMIN') {
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { assignedToId: user.id },
+            { contact: { assignedToId: user.id } },
+          ],
+        },
       ];
     } else if (assignedToId) {
-      where.OR = [
-        { assignedToId: assignedToId },
-        { contact: { assignedToId: assignedToId } },
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { assignedToId: assignedToId },
+            { contact: { assignedToId: assignedToId } },
+          ],
+        },
       ];
     }
 

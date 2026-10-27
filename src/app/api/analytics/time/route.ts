@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       startDate.setMonth(now.getMonth() - 3);
     }
 
-    const isSalesperson = user.role === 'ASESOR';
+    const isSalesperson = user.role !== 'ADMIN';
     const effectiveAdvisorId = isSalesperson ? user.id : advisorId;
 
     // Contact scoping: strictly advisor's contacts if ASESOR or if filtered by admin

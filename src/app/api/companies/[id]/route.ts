@@ -31,7 +31,7 @@ export async function GET(
         },
         proposals: {
           include: {
-            contact: { select: { id: true, name: true } },
+            contact: { select: { id: true, name: true, assignedToId: true } },
             assignedTo: { select: { id: true, name: true } },
           },
           orderBy: { updatedAt: 'desc' },
@@ -55,11 +55,11 @@ export async function GET(
       };
     });
 
-    // Un asesor no ve las cotizaciones de otros asesores
+    // Un vendedor solo ve sus propias cotizaciones, no las de otros vendedores
     const visibleProposals = user.role === 'ADMIN'
       ? company.proposals
       : company.proposals.filter(
-          (p) => !p.assignedToId || p.assignedToId === user.id
+          (p) => p.assignedToId === user.id || p.contact?.assignedToId === user.id
         );
 
     const isWon = (s: string) => s === 'GANADO' || s === 'VENTA';

@@ -100,10 +100,10 @@ export async function GET(req: Request) {
     const proposalWhere: any = {
       closedAt: { not: null },
     };
-    if (user.role === 'ASESOR') {
+    if (user.role !== 'ADMIN') {
       proposalWhere.OR = [
         { assignedToId: user.id },
-        { assignedToId: null },
+        { contact: { assignedToId: user.id } },
       ];
     } else if (advisorId) {
       proposalWhere.assignedToId = advisorId;

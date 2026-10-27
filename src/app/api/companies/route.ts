@@ -96,6 +96,14 @@ export async function GET(req: Request) {
           },
         },
         proposals: {
+          where: user.role === 'ADMIN'
+            ? {}
+            : {
+                OR: [
+                  { assignedToId: user.id },
+                  { contact: { assignedToId: user.id } },
+                ],
+              },
           select: {
             id: true,
             title: true,

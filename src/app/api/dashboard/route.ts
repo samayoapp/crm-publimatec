@@ -20,7 +20,7 @@ export async function GET() {
     });
     const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
-    const isAdvisor = user.role === 'ASESOR';
+    const isAdvisor = user.role !== 'ADMIN';
     const whereProp: any = isAdvisor
       ? {
           OR: [

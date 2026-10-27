@@ -23,6 +23,7 @@ export async function GET(
             companyName: true,
             phone: true,
             email: true,
+            assignedToId: true,
           },
         },
         assignedTo: {
@@ -45,6 +46,18 @@ export async function GET(
 
     if (!proposal) {
       return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
+    }
+
+    if (user.role !== 'ADMIN') {
+      const isOwner =
+        proposal.assignedToId === user.id ||
+        proposal.contact?.assignedToId === user.id;
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'No tienes autorización para ver propuestas de otros vendedores' },
+          { status: 403 }
+        );
+      }
     }
 
     return NextResponse.json({ proposal });
@@ -71,6 +84,18 @@ export async function PATCH(
 
     if (!currentProp) {
       return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
+    }
+
+    if (user.role !== 'ADMIN') {
+      const isOwner =
+        currentProp.assignedToId === user.id ||
+        currentProp.contact?.assignedToId === user.id;
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'No tienes autorización para modificar propuestas de otros vendedores' },
+          { status: 403 }
+        );
+      }
     }
 
     const data = await req.json();
@@ -167,6 +192,27 @@ export async function DELETE(
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const currentProp = await prisma.proposal.findUnique({
+      where: { id: params.id },
+      include: { contact: { select: { assignedToId: true } } },
+    });
+
+    if (!currentProp) {
+      return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
+    }
+
+    if (user.role !== 'ADMIN') {
+      const isOwner =
+        currentProp.assignedToId === user.id ||
+        currentProp.contact?.assignedToId === user.id;
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'No tienes autorización para eliminar propuestas de otros vendedores' },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.proposal.delete({

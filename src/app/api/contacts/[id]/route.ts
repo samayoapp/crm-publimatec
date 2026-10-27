@@ -47,7 +47,7 @@ export async function GET(
     }
 
     // Validación de Privacidad: Solo el asesor dueño del contacto o un Administrador pueden ver el perfil completo y el teléfono
-    const isOwner = user.role === 'ADMIN' || !contact.assignedToId || contact.assignedToId === user.id;
+    const isOwner = user.role === 'ADMIN' || contact.assignedToId === user.id;
     if (!isOwner) {
       return NextResponse.json(
         {
@@ -69,7 +69,18 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ contact });
+    const visibleProposals = user.role === 'ADMIN'
+      ? contact.proposals
+      : contact.proposals.filter(
+          (p) => p.assignedToId === user.id || contact.assignedToId === user.id
+        );
+
+    return NextResponse.json({
+      contact: {
+        ...contact,
+        proposals: visibleProposals,
+      },
+    });
   } catch (error) {
     console.error('Error al obtener contacto:', error);
     return NextResponse.json({ error: 'Error al obtener contacto' }, { status: 500 });

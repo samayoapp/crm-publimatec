@@ -97,7 +97,9 @@ export default function ProposalsPage() {
     let url = '/api/proposals?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (selectedStage) url += `stage=${encodeURIComponent(selectedStage)}&`;
-    if (selectedAdvisor) url += `assignedToId=${encodeURIComponent(selectedAdvisor)}&`;
+    if (currentUser?.role === 'ADMIN' && selectedAdvisor) {
+      url += `assignedToId=${encodeURIComponent(selectedAdvisor)}&`;
+    }
 
     fetch(url)
       .then((res) => res.json())
@@ -373,8 +375,8 @@ export default function ProposalsPage() {
               </select>
             </div>
 
-            {/* Filter 2: Advisor (if available) */}
-            {advisors.length > 0 && (
+            {/* Filter 2: Advisor (Solo Director/Admin) */}
+            {currentUser?.role === 'ADMIN' && advisors.length > 0 && (
               <div className="relative">
                 <select
                   value={selectedAdvisor}
@@ -389,6 +391,13 @@ export default function ProposalsPage() {
                   ))}
                 </select>
               </div>
+            )}
+
+            {currentUser?.role !== 'ADMIN' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                Mis Cotizaciones Asignadas
+              </span>
             )}
           </div>
 
