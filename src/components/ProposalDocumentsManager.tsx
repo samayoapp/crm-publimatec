@@ -19,7 +19,9 @@ import {
   FileCheck,
   Image as ImageIcon,
   Share2,
+  Eye,
 } from 'lucide-react';
+import FilePreviewModal from '@/components/FilePreviewModal';
 
 interface DocumentItem {
   id: string;
@@ -58,6 +60,9 @@ export default function ProposalDocumentsManager({
   const [institutionalDocs, setInstitutionalDocs] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'list' | 'upload' | 'link' | 'library'>('list');
+
+  // Floating File Preview
+  const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
 
   // Form states - Upload
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -437,7 +442,11 @@ export default function ProposalDocumentsManager({
                     className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 hover:border-indigo-400 dark:hover:border-indigo-500/40 transition-all flex items-center justify-between gap-3 group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700">
+                      <div
+                        onClick={() => setPreviewDoc(doc)}
+                        className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                        title="Clic para previsualizar"
+                      >
                         {doc.fileType === 'IMAGE' ? (
                           <ImageIcon className="w-4 h-4 text-purple-500" />
                         ) : doc.fileType === 'EXCEL' ? (
@@ -451,14 +460,14 @@ export default function ProposalDocumentsManager({
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate block"
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate block text-left"
+                            title={`Previsualizar ${doc.title}`}
                           >
                             {doc.title}
-                          </a>
+                          </button>
                           {doc.version && (
                             <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
                               {doc.version}
@@ -477,6 +486,16 @@ export default function ProposalDocumentsManager({
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Quick Preview Button */}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc(doc)}
+                        title="Previsualizar archivo"
+                        className="p-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
                       {/* WhatsApp Share Button */}
                       <button
                         type="button"
@@ -719,6 +738,17 @@ export default function ProposalDocumentsManager({
           )}
         </div>
       )}
+      {/* FLOATING FILE PREVIEW MODAL */}
+      <FilePreviewModal
+        document={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onShareWhatsApp={(doc) => {
+          setPreviewDoc(null);
+          const found = documents.find((d) => d.id === doc.id) || (doc as DocumentItem);
+          shareViaWhatsApp(found);
+        }}
+      />
     </div>
   );
 }

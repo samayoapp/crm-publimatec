@@ -31,3 +31,7 @@ yarn-error.log*
 
 # typescript build cache
 *.tsbuildinfo
+
+# uploaded documents
+/public/uploads/documents/*
+!/public/uploads/documents/.gitkeep

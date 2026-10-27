@@ -32,7 +32,9 @@ import {
   Users,
   MoreVertical,
   CheckCircle2,
+  Eye,
 } from 'lucide-react';
+import FilePreviewModal from '@/components/FilePreviewModal';
 
 interface FolderItem {
   id: string;
@@ -140,6 +142,9 @@ export default function ResourcesPage() {
   const [shareDoc, setShareDoc] = useState<ResourceItem | null>(null);
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappClientName, setWhatsappClientName] = useState('');
+
+  // Floating File Preview Modal
+  const [previewDoc, setPreviewDoc] = useState<ResourceItem | null>(null);
 
   // Toast Notification
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -1005,7 +1010,11 @@ export default function ResourcesPage() {
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200/60 dark:border-indigo-800/60">
+                    <div
+                      onClick={() => setPreviewDoc(item)}
+                      className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      title="Clic para previsualizar"
+                    >
                       {item.fileType === 'PPT' ? (
                         <FileCode className="w-5 h-5 text-amber-500" />
                       ) : item.fileType === 'EXCEL' ? (
@@ -1048,7 +1057,11 @@ export default function ResourcesPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1" title={item.title}>
+                    <h3
+                      onClick={() => setPreviewDoc(item)}
+                      className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1 cursor-pointer"
+                      title={`Previsualizar ${item.title}`}
+                    >
                       {item.title}
                     </h3>
                     {item.description && (
@@ -1078,6 +1091,16 @@ export default function ResourcesPage() {
                   <span>{sizeStr || 'Enlace externo'}</span>
 
                   <div className="flex items-center gap-1">
+                    {/* Quick Preview Button */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(item)}
+                      title="Previsualizar archivo"
+                      className="p-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+
                     {/* Share WhatsApp */}
                     <button
                       type="button"
@@ -1104,7 +1127,7 @@ export default function ResourcesPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       title={item.fileType === 'LINK' ? 'Abrir enlace' : 'Descargar archivo'}
-                      className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       {item.fileType === 'LINK' ? (
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -1613,6 +1636,17 @@ export default function ResourcesPage() {
           </div>
         </div>
       )}
+
+      {/* FLOATING FILE PREVIEW MODAL */}
+      <FilePreviewModal
+        document={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onShareWhatsApp={(doc) => {
+          setPreviewDoc(null);
+          setShareDoc(doc as ResourceItem);
+        }}
+      />
     </div>
   );
 }
