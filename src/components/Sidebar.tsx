@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Kanban,
@@ -20,6 +20,7 @@ import {
   FolderOpen,
   User,
   Feather,
+  LogOut,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,6 +38,25 @@ interface SidebarProps {
 
 export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      try {
+        sessionStorage.clear();
+        document.cookie = 'welcome_pending=; path=/; max-age=0;';
+      } catch (e) {}
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Error al salir', err);
+      setIsLoggingOut(false);
+    }
+  };
 
   // Auto-close sidebar on route change on mobile
   useEffect(() => {
@@ -226,8 +246,32 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
               </div>
             ))}
 
-            {/* Acceso discreto a Frase Inspiracional / Plumita */}
-            <div className="pt-3 pb-6 flex items-center justify-center">
+            {/* Divisor antes de Cerrar Sesión */}
+            <div className="py-1.5 px-2">
+              <div className="border-t border-slate-200 dark:border-slate-800/80" />
+            </div>
+
+            {/* Botón Cerrar Sesión en Menú Lateral */}
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose?.();
+                  handleLogout();
+                }}
+                disabled={isLoggingOut}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all cursor-pointer group ${
+                  isLoggingOut ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                title="Cerrar sesión"
+              >
+                <LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition-colors" />
+                <span>{isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
+              </button>
+            </div>
+
+            {/* Acceso discreto a Frase Inspiracional / Plumita (Justificada a la Izquierda) */}
+            <div className="pt-2 pb-6 px-1.5 flex items-center justify-start">
               <button
                 id="btn-sidebar-quote"
                 type="button"
