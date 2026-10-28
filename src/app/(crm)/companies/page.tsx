@@ -470,12 +470,12 @@ export default function CompaniesPage() {
                     {/* Empresa Logo & Nombre */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="w-10 h-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 overflow-hidden flex items-center justify-center shrink-0 shadow-xs p-1">
                           {comp.logoUrl ? (
                             <img
                               src={comp.logoUrl}
                               alt={comp.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                               onError={(e) => {
                                 (e.target as HTMLElement).style.display = 'none';
                               }}
@@ -678,12 +678,12 @@ export default function CompaniesPage() {
               <div>
                 {/* Header card with Logo & Name */}
                 <div className="flex items-start gap-3.5">
-                  <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700/80 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 overflow-hidden flex items-center justify-center shrink-0 shadow-sm p-1.5">
                     {comp.logoUrl ? (
                       <img
                         src={comp.logoUrl}
                         alt={comp.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
