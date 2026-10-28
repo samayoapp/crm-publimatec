@@ -610,15 +610,6 @@ export default function ProposalsPage() {
                             />
                           )}
 
-                          {!won && (
-                            <button
-                              onClick={() => updateStage(prop.id, 'GANADO')}
-                              className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border border-emerald-200 dark:border-emerald-500/30 transition-colors"
-                              title="Cerrar venta ganada"
-                            >
-                              ¡Ganada!
-                            </button>
-                          )}
 
                           <button
                             onClick={() => {
@@ -769,15 +760,6 @@ export default function ProposalsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {!won && (
-                      <button
-                        onClick={() => updateStage(prop.id, 'GANADO')}
-                        className="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-500/30 transition-colors"
-                        title="Marcar como venta cerrada"
-                      >
-                        ¡Cerrar Venta!
-                      </button>
-                    )}
 
                     <button
                       onClick={() => {
