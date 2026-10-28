@@ -133,6 +133,7 @@ export async function POST(req: Request) {
         });
       }
       companyId = comp.id;
+      companyName = comp.name;
     }
 
     // Todo contacto nuevo entra por defecto a LLAMAR HOY (hora actual de registro)

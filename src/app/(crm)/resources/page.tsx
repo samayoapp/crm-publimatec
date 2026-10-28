@@ -133,6 +133,7 @@ export default function ResourcesPage() {
   const [docFolderId, setDocFolderId] = useState<string>('');
   const [docTags, setDocTags] = useState<string[]>([]);
   const [customTagInput, setCustomTagInput] = useState('');
+  const [extraTags, setExtraTags] = useState<string[]>([]);
   const [docVersion, setDocVersion] = useState('v1');
   const [savingDoc, setSavingDoc] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -243,6 +244,12 @@ export default function ResourcesPage() {
     });
     return Array.from(tagSet);
   }, [resources]);
+
+  // Lista unificada de todos los tags para el modal (Predeterminados + Biblioteca + Creados por el usuario)
+  const allModalTags = useMemo(() => {
+    const tagSet = new Set<string>([...DEFAULT_TAGS, ...availableTags, ...extraTags, ...docTags]);
+    return Array.from(tagSet);
+  }, [availableTags, extraTags, docTags]);
 
   // Filtered documents
   const filteredResources = useMemo(() => {
@@ -438,14 +445,22 @@ export default function ResourcesPage() {
     }
   };
 
-  const handleAddCustomTag = (e: React.KeyboardEvent | React.MouseEvent) => {
-    if ('key' in e && e.key !== 'Enter') return;
-    e.preventDefault();
-    const t = customTagInput.trim();
-    if (t && !docTags.includes(t)) {
-      setDocTags([...docTags, t]);
-      setCustomTagInput('');
+  const handleAddCustomTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
+    if (e && 'key' in e && e.key !== 'Enter') return;
+    if (e) e.preventDefault();
+    const raw = customTagInput.trim().replace(/^#+/, '').trim();
+    if (!raw) return;
+
+    // Normalizar capitalización
+    const cleanTag = raw.charAt(0).toUpperCase() + raw.slice(1);
+
+    if (!extraTags.includes(cleanTag)) {
+      setExtraTags((prev) => [...prev, cleanTag]);
     }
+    if (!docTags.includes(cleanTag)) {
+      setDocTags((prev) => [...prev, cleanTag]);
+    }
+    setCustomTagInput('');
   };
 
   const handleSaveDoc = async (e: React.FormEvent) => {
@@ -1636,7 +1651,7 @@ export default function ResourcesPage() {
                       : 'text-slate-500'
                   }`}
                 >
-                  <Upload className="w-3.5 h-3.5" />
+                  <FileText className="w-3.5 h-3.5" />
                   <span>Subir Archivo (PDF, PPT, Excel)</span>
                 </button>
                 <button
@@ -1661,18 +1676,34 @@ export default function ResourcesPage() {
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Archivo *
                     </label>
-                    <input
-                      type="file"
-                      required
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) {
-                          setFileToUpload(f);
-                          if (!docTitle) setDocTitle(f.name.replace(/\.[^/.]+$/, ''));
-                        }
-                      }}
-                      className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-950 dark:file:text-indigo-300"
-                    />
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 transition-all shadow-xs">
+                        <Upload className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <span>{fileToUpload ? 'Cambiar archivo' : 'Subir archivo'}</span>
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) {
+                              setFileToUpload(f);
+                              if (!docTitle) setDocTitle(f.name.replace(/\.[^/.]+$/, ''));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {fileToUpload ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
+                          <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{fileToUpload.name}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0">
+                            ({(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Ningún archivo seleccionado</span>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -1745,23 +1776,44 @@ export default function ResourcesPage() {
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   TAGs & Etiquetas para Filtrar
                 </label>
-                <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-h-32 overflow-y-auto">
-                  {DEFAULT_TAGS.map((t) => {
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-h-36 overflow-y-auto">
+                  {allModalTags.map((t) => {
                     const isSelected = docTags.includes(t);
+                    const isCustom = !DEFAULT_TAGS.includes(t);
                     return (
-                      <button
+                      <div
                         key={t}
-                        type="button"
-                        onClick={() => handleToggleDocTag(t)}
-                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 ${
+                        className={`inline-flex items-center rounded-lg border text-[11px] font-bold transition-all ${
                           isSelected
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                             : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                         }`}
                       >
-                        {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                        <span>#{t}</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDocTag(t)}
+                          className="px-2.5 py-1 flex items-center gap-1 cursor-pointer"
+                        >
+                          {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                          <span>#{t}</span>
+                        </button>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDocTags((prev) => prev.filter((tag) => tag !== t));
+                              setExtraTags((prev) => prev.filter((tag) => tag !== t));
+                            }}
+                            className={`pr-1.5 pl-0.5 py-1 text-[10px] hover:opacity-75 ${
+                              isSelected ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-rose-500'
+                            }`}
+                            title="Quitar etiqueta personalizada"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1778,8 +1830,8 @@ export default function ResourcesPage() {
                   />
                   <button
                     type="button"
-                    onClick={handleAddCustomTag}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                    onClick={() => handleAddCustomTag()}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                   >
                     + Agregar Tag
                   </button>

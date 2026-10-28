@@ -132,20 +132,18 @@ export async function PATCH(
       updateData.lastContactAt = data.lastContactAt ? new Date(data.lastContactAt) : null;
     }
 
-    if (data.companyId !== undefined) {
-      updateData.companyId = data.companyId || null;
-      if (data.companyId) {
-        const comp = await prisma.company.findUnique({
-          where: { id: data.companyId },
-          select: { name: true },
-        });
-        if (comp) updateData.companyName = comp.name;
-        // Also update proposals companyId
-        await prisma.proposal.updateMany({
-          where: { contactId: params.id },
-          data: { companyId: data.companyId },
-        });
-      }
+    if (data.companyId) {
+      updateData.companyId = data.companyId;
+      const comp = await prisma.company.findUnique({
+        where: { id: data.companyId },
+        select: { name: true },
+      });
+      if (comp) updateData.companyName = comp.name;
+      // Also update proposals companyId
+      await prisma.proposal.updateMany({
+        where: { contactId: params.id },
+        data: { companyId: data.companyId },
+      });
     } else if (data.companyName !== undefined) {
       const trimmedName = data.companyName ? data.companyName.trim() : null;
       updateData.companyName = trimmedName;
@@ -163,13 +161,26 @@ export async function PATCH(
           });
         }
         updateData.companyId = comp.id;
+        updateData.companyName = comp.name;
         await prisma.proposal.updateMany({
           where: { contactId: params.id },
           data: { companyId: comp.id },
         });
       } else {
         updateData.companyId = null;
+        updateData.companyName = null;
+        await prisma.proposal.updateMany({
+          where: { contactId: params.id },
+          data: { companyId: null },
+        });
       }
+    } else if (data.companyId === null) {
+      updateData.companyId = null;
+      updateData.companyName = null;
+      await prisma.proposal.updateMany({
+        where: { contactId: params.id },
+        data: { companyId: null },
+      });
     }
 
     if (data.assignedToId !== undefined) {

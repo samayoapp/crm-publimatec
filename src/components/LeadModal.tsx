@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X,
   User,
@@ -71,7 +71,9 @@ export default function LeadModal({
   const [jobTitle, setJobTitle] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [isCustomCompany, setIsCustomCompany] = useState(false);
+  const [companyMode, setCompanyMode] = useState<'write' | 'select'>('write');
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+  const companyBoxRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState('');
 
   // Advanced / Optional states
@@ -85,6 +87,17 @@ export default function LeadModal({
   const [assignedToId, setAssignedToId] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState('');
   const [nextFollowUpTask, setNextFollowUpTask] = useState('');
+
+  // Cerrar lista de sugerencias al hacer clic fuera del campo
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (companyBoxRef.current && !companyBoxRef.current.contains(event.target as Node)) {
+        setShowCompanySuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch advisors and companies
   useEffect(() => {
@@ -115,7 +128,8 @@ export default function LeadModal({
       const cName = leadToEdit.companyName || leadToEdit.company?.name || '';
       setCompanyId(cId);
       setCompanyName(cName);
-      setIsCustomCompany(!cId && Boolean(cName));
+      setCompanyMode('write'); // Prioridad de escritura
+      setShowCompanySuggestions(false);
 
       setEmail(leadToEdit.email || '');
       setAvatarUrl(leadToEdit.avatarUrl || '');
@@ -141,13 +155,14 @@ export default function LeadModal({
       );
       setShowAdvanced(hasAdvanced);
     } else {
-      // Clean defaults for quick new contact
+      // Prioridad de escritura para nuevo contacto
       setContactName('');
       setPhone('');
       setJobTitle('');
       setCompanyId(defaultCompanyId || '');
       setCompanyName(defaultCompanyName || '');
-      setIsCustomCompany(Boolean(defaultCompanyName && !defaultCompanyId));
+      setCompanyMode('write'); // Prioridad de escritura por defecto
+      setShowCompanySuggestions(false);
       setEmail('');
       setAvatarUrl('');
       setTitle('');
@@ -167,23 +182,35 @@ export default function LeadModal({
     setError(null);
   }, [leadToEdit, isOpen, currentUser, defaultCompanyId, defaultCompanyName, currency]);
 
-  if (!isOpen) return null;
+  // Empresas que coinciden con lo que se escribe
+  const query = companyName.trim().toLowerCase();
+  const matchingCompanies = query
+    ? companies.filter((c) => c.name.toLowerCase().includes(query))
+    : [];
 
-  const handleCompanySelect = (selectedId: string) => {
-    if (selectedId === 'CUSTOM_NEW') {
-      setIsCustomCompany(true);
+  const handleSelectSuggestedCompany = (comp: CompanyOption) => {
+    setCompanyName(comp.name);
+    setCompanyId(comp.id);
+    setShowCompanySuggestions(false);
+  };
+
+  const handleCompanyNameChange = (val: string) => {
+    setCompanyName(val);
+    const trimmed = val.trim().toLowerCase();
+    if (!trimmed) {
       setCompanyId('');
-      setCompanyName('');
+      setShowCompanySuggestions(false);
       return;
     }
-    setCompanyId(selectedId);
-    setIsCustomCompany(false);
-    if (selectedId) {
-      const found = companies.find((c) => c.id === selectedId);
-      if (found) setCompanyName(found.name);
+    // Verificar si coincide exactamente con alguna existente
+    const exact = companies.find((c) => c.name.toLowerCase() === trimmed);
+    if (exact) {
+      setCompanyId(exact.id);
     } else {
-      setCompanyName('');
+      // Si el texto difiere, se vacía companyId para que el backend la cree automáticamente
+      setCompanyId('');
     }
+    setShowCompanySuggestions(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,6 +281,8 @@ export default function LeadModal({
       setLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fadeIn">
@@ -336,7 +365,7 @@ export default function LeadModal({
             </div>
           </div>
 
-          {/* 2. Empresa o Negocio (Flujo Unificado & Inteligente) */}
+          {/* 2. Empresa o Negocio (Prioridad de Escritura & Detección Inteligente) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -347,74 +376,158 @@ export default function LeadModal({
                 <button
                   type="button"
                   onClick={() => {
-                    setIsCustomCompany(!isCustomCompany);
-                    if (!isCustomCompany) setCompanyId('');
+                    if (companyMode === 'write') {
+                      setCompanyMode('select');
+                      setShowCompanySuggestions(false);
+                    } else {
+                      setCompanyMode('write');
+                    }
                   }}
-                  className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 transition-all shadow-xs"
                 >
-                  {isCustomCompany ? 'Elegir de lista existente' : '+ Escribir otra empresa'}
+                  {companyMode === 'write' ? (
+                    <>
+                      <Building className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                      <span>Empresa Existente</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>+ Escribir / Nueva Empresa</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
 
-            {companies.length > 0 && !isCustomCompany ? (
-              <select
-                value={companyId}
-                onChange={(e) => handleCompanySelect(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              >
-                <option value="">-- Sin empresa / Seleccionar cuenta --</option>
-                {companies.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.name} {comp.industry ? `(${comp.industry})` : ''}
-                  </option>
-                ))}
-                <option value="CUSTOM_NEW">+ Escribir nueva empresa / negocio...</option>
-              </select>
-            ) : (
-              <div className="relative">
-                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  list="lead-companies-datalist"
-                  placeholder="ej. Distribuidora del Caribe o Café Monte Alto"
-                  value={companyName}
+            {companyMode === 'select' ? (
+              <div>
+                <select
+                  value={companyId}
                   onChange={(e) => {
-                    setCompanyName(e.target.value);
-                    const match = companies.find(
-                      (c) => c.name.toLowerCase() === e.target.value.toLowerCase().trim()
-                    );
-                    if (match) setCompanyId(match.id);
-                    else setCompanyId('');
+                    const selectedId = e.target.value;
+                    setCompanyId(selectedId);
+                    if (selectedId) {
+                      const found = companies.find((c) => c.id === selectedId);
+                      if (found) setCompanyName(found.name);
+                    } else {
+                      setCompanyName('');
+                    }
                   }}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 pl-9 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                />
-                <datalist id="lead-companies-datalist">
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.name} />
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                >
+                  <option value="">-- Sin empresa / Seleccionar cuenta ({companies.length}) --</option>
+                  {companies.map((comp) => (
+                    <option key={comp.id} value={comp.id}>
+                      {comp.name} {comp.industry ? `(${comp.industry})` : ''}
+                    </option>
                   ))}
-                </datalist>
+                </select>
+                {companyId && (
+                  <div className="flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 text-[11px] text-emerald-700 dark:text-emerald-300">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>Empresa seleccionada: <strong>{companyName}</strong></span>
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Quick Suggestions if companies exist and not selected */}
-            {companies.length > 0 && !companyId && !companyName && (
-              <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                <span className="text-[10px] text-slate-400 mr-1">Recientes:</span>
-                {companies.slice(0, 3).map((comp) => (
-                  <button
-                    key={comp.id}
-                    type="button"
-                    onClick={() => {
-                      setCompanyId(comp.id);
-                      setCompanyName(comp.name);
-                      setIsCustomCompany(false);
+            ) : (
+              <div ref={companyBoxRef} className="relative">
+                <div className="relative">
+                  <Building className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Escribe el nombre de la empresa o negocio..."
+                    value={companyName}
+                    onChange={(e) => handleCompanyNameChange(e.target.value)}
+                    onFocus={() => {
+                      if (companyName.trim().length > 0) {
+                        setShowCompanySuggestions(true);
+                      }
                     }}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/40 text-slate-600 dark:text-slate-300 hover:text-indigo-600 border border-slate-200 dark:border-slate-700/60 transition-colors"
-                  >
-                    {comp.name}
-                  </button>
-                ))}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 pl-9 pr-8 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  />
+                  {companyName && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompanyName('');
+                        setCompanyId('');
+                        setShowCompanySuggestions(false);
+                      }}
+                      className="absolute right-2.5 top-2.5 p-0.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      title="Limpiar"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Lista desplegable flotante de coincidencias en vivo */}
+                {showCompanySuggestions && matchingCompanies.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span>Empresas similares encontradas ({matchingCompanies.length})</span>
+                      <span className="text-[9px] lowercase font-normal text-slate-500">clic para vincular</span>
+                    </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {matchingCompanies.map((comp) => {
+                        const isSelected = comp.id === companyId;
+                        return (
+                          <button
+                            key={comp.id}
+                            type="button"
+                            onClick={() => handleSelectSuggestedCompany(comp)}
+                            className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors group ${
+                              isSelected
+                                ? 'bg-indigo-50 dark:bg-indigo-950/60'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Building className="w-3.5 h-3.5 text-indigo-500 shrink-0 group-hover:scale-110 transition-transform" />
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
+                                {comp.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {comp.industry && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {comp.industry}
+                                </span>
+                              )}
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notificaciones y estados del campo */}
+                {companyId && companyName ? (
+                  <div className="flex items-center justify-between mt-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 text-[11px] text-emerald-700 dark:text-emerald-300">
+                    <div className="flex items-center gap-1.5 font-medium truncate">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>Empresa existente vinculada:</span>
+                      <strong className="truncate">{companyName}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyId('')}
+                      className="ml-2 text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-white underline text-[10px] shrink-0"
+                    >
+                      Desvincular
+                    </button>
+                  </div>
+                ) : companyName.trim().length > 0 ? (
+                  <div className="flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 text-[11px] text-indigo-700 dark:text-indigo-300">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>Nueva empresa: se creará automáticamente <strong>&quot;{companyName.trim()}&quot;</strong> al guardar.</span>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
