@@ -35,6 +35,18 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
   }
 }
 
+// Micro-cache en memoria TTL de 5 segundos para evitar consultas duplicadas a la tabla User
+// en requests concurrentes generados por la misma pantalla (ej. dashboard + notificaciones + perfil)
+const userCache = new Map<string, { user: any; expiresAt: number }>();
+
+export function invalidateUserCache(userId?: string) {
+  if (userId) {
+    userCache.delete(userId);
+  } else {
+    userCache.clear();
+  }
+}
+
 export async function getCurrentUser(): Promise<(UserSession & { phone?: string | null; avatarUrl?: string | null; preferredCurrency?: string | null }) | null> {
   const cookieStore = cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -43,6 +55,12 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
 
   const session = await verifySessionToken(token);
   if (!session) return null;
+
+  const now = Date.now();
+  const cached = userCache.get(session.id);
+  if (cached && cached.expiresAt > now) {
+    return cached.user;
+  }
 
   // Verify user is still active in DB
   let dbUser: any = null;
@@ -60,10 +78,11 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
   }
 
   if (!dbUser || !dbUser.active) {
+    userCache.delete(session.id);
     return null;
   }
 
-  return {
+  const userResult = {
     id: dbUser.id,
     name: dbUser.name,
     email: dbUser.email,
@@ -72,6 +91,11 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
     avatarUrl: dbUser.avatarUrl,
     preferredCurrency: dbUser.preferredCurrency || 'HNL',
   };
+
+  // Guardar en cache durante 5 segundos
+  userCache.set(session.id, { user: userResult, expiresAt: now + 5000 });
+
+  return userResult;
 }
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;

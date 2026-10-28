@@ -31,6 +31,9 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
+    // Si la pestaña está oculta o en segundo plano, no saturar la base de datos
+    if (typeof document !== 'undefined' && document.hidden) return;
+
     try {
       const res = await fetch('/api/notifications');
       if (res.ok) {
@@ -46,16 +49,23 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 20000); // 20s poll
+    const interval = setInterval(fetchNotifications, 45000); // 45s poll optimizado
 
     const handleRefresh = () => fetchNotifications();
     window.addEventListener('crm-lead-saved', handleRefresh);
     window.addEventListener('crm-notification-update', handleRefresh);
 
+    // Si el usuario regresa a la pestaña activa, refrescar inmediatamente
+    const handleVisibility = () => {
+      if (!document.hidden) fetchNotifications();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('crm-lead-saved', handleRefresh);
       window.removeEventListener('crm-notification-update', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 

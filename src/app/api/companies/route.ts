@@ -11,51 +11,10 @@ export async function GET(req: Request) {
     }
 
     const targetCurrency = user.preferredCurrency || 'HNL';
-    const setting = await prisma.setting.findUnique({
-      where: { id: 'default' },
-      select: { exchangeRates: true },
-    });
-    const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const industry = searchParams.get('industry');
-
-    // Auto-sync / auto-link: Ensure any contact with companyName has a corresponding Company record
-    const unlinkedContacts = await prisma.contact.findMany({
-      where: {
-        companyId: null,
-        companyName: { not: null },
-      },
-      select: { id: true, companyName: true },
-    });
-
-    if (unlinkedContacts.length > 0) {
-      for (const c of unlinkedContacts) {
-        if (!c.companyName || !c.companyName.trim()) continue;
-        const name = c.companyName.trim();
-        let comp = await prisma.company.findFirst({
-          where: { name: { equals: name, mode: 'insensitive' } },
-        });
-        if (!comp) {
-          comp = await prisma.company.create({
-            data: {
-              name,
-              city: 'San Pedro Sula',
-              country: 'Honduras',
-            },
-          });
-        }
-        await prisma.contact.update({
-          where: { id: c.id },
-          data: { companyId: comp.id, companyName: comp.name },
-        });
-        await prisma.proposal.updateMany({
-          where: { contactId: c.id, companyId: null },
-          data: { companyId: comp.id },
-        });
-      }
-    }
 
     const where: any = {};
 
@@ -78,39 +37,48 @@ export async function GET(req: Request) {
       ];
     }
 
-    const companies = await prisma.company.findMany({
-      where,
-      include: {
-        contacts: {
-          select: {
-            id: true,
-            name: true,
-            jobTitle: true,
-            phone: true,
-            email: true,
-            avatarUrl: true,
-            assignedToId: true,
-            assignedTo: {
-              select: { id: true, name: true },
+    // Consultar Setting y Companies en paralelo con Promise.all
+    const [setting, companies] = await Promise.all([
+      prisma.setting.findUnique({
+        where: { id: 'default' },
+        select: { exchangeRates: true },
+      }),
+      prisma.company.findMany({
+        where,
+        include: {
+          contacts: {
+            select: {
+              id: true,
+              name: true,
+              jobTitle: true,
+              phone: true,
+              email: true,
+              avatarUrl: true,
+              assignedToId: true,
+              assignedTo: {
+                select: { id: true, name: true },
+              },
             },
           },
-        },
-        proposals: {
-          where: user.role === 'ADMIN' ? {} : { assignedToId: user.id },
-          select: {
-            id: true,
-            title: true,
-            stage: true,
-            amount: true,
-            currency: true,
+          proposals: {
+            where: user.role === 'ADMIN' ? {} : { assignedToId: user.id },
+            select: {
+              id: true,
+              title: true,
+              stage: true,
+              amount: true,
+              currency: true,
+            },
+          },
+          _count: {
+            select: { contacts: true, proposals: true },
           },
         },
-        _count: {
-          select: { contacts: true, proposals: true },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    const rates = (setting?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
 
     // Compute aggregated metrics per company
     const isWon = (s: string) => s === 'GANADO' || s === 'VENTA';

@@ -58,8 +58,20 @@ const defaultContext: SettingsContextType = {
 
 const SettingsContext = createContext<SettingsContextType>(defaultContext);
 
+// Cache estática en memoria para que la navegación entre pantallas sea instantánea (0ms)
+let cachedGlobalSettings: {
+  currency: string;
+  currencySymbol: string;
+  companyName: string;
+  taxRate: number;
+  monthlySalesTarget: number;
+} | null = null;
+let cachedUserCurrency: string | null = null;
+let cachedRates: Record<string, number> | null = null;
+let cachedRatesUpdatedAt: string | null = null;
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [globalSettings, setGlobalSettings] = useState({
+  const [globalSettings, setGlobalSettings] = useState(() => cachedGlobalSettings || {
     currency: 'HNL',
     currencySymbol: 'L',
     companyName: 'PUBLIMATEC CRM',
@@ -67,18 +79,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     monthlySalesTarget: 120000,
   });
 
-  const [userPreferredCurrency, setUserPreferredCurrency] = useState<string>('HNL');
-  const [rates, setRates] = useState<Record<string, number>>(DEFAULT_EXCHANGE_RATES);
-  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
+  const [userPreferredCurrency, setUserPreferredCurrency] = useState<string>(() => cachedUserCurrency || 'HNL');
+  const [rates, setRates] = useState<Record<string, number>>(() => cachedRates || DEFAULT_EXCHANGE_RATES);
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(() => cachedRatesUpdatedAt);
 
   // 1. Obtener perfil del usuario autenticado (para conocer su moneda de trabajo preferida)
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = async (force = false) => {
+    if (!force && cachedUserCurrency) return;
     try {
       const res = await fetch('/api/profile');
       if (res.ok) {
         const data = await res.json();
         if (data.user?.preferredCurrency) {
-          setUserPreferredCurrency(data.user.preferredCurrency.toUpperCase());
+          const curr = data.user.preferredCurrency.toUpperCase();
+          cachedUserCurrency = curr;
+          setUserPreferredCurrency(curr);
         }
       }
     } catch (e) {
@@ -87,7 +102,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 2. Obtener configuración global del CRM (establecida por el Director)
-  const fetchGlobalSettings = async () => {
+  const fetchGlobalSettings = async (force = false) => {
+    if (!force && cachedGlobalSettings) return;
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
@@ -95,13 +111,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (data.settings) {
           const gCurr = data.settings.currency || 'HNL';
           const gSym = data.settings.currencySymbol || CURRENCIES[gCurr as CurrencyCode]?.symbol || 'L';
-          setGlobalSettings({
+          const newSettings = {
             currency: gCurr,
             currencySymbol: gSym,
             companyName: data.settings.companyName || 'PUBLIMATEC CRM',
             taxRate: data.settings.taxRate ?? 15,
             monthlySalesTarget: data.settings.monthlySalesTarget ?? 120000,
-          });
+          };
+          cachedGlobalSettings = newSettings;
+          setGlobalSettings(newSettings);
         }
       }
     } catch (e) {
@@ -111,18 +129,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // 3. Obtener tipos de cambio vigentes
   const fetchRates = async (force: boolean = false) => {
+    if (!force && cachedRates) return;
     try {
       const res = await fetch(`/api/currency/rates${force ? '?refresh=true' : ''}`);
       if (res.ok) {
         const data = await res.json();
         if (data.rates) {
-          setRates({
+          const newRates = {
             USD: Number(data.rates.USD) || 1,
             EUR: Number(data.rates.EUR) || DEFAULT_EXCHANGE_RATES.EUR,
             HNL: Number(data.rates.HNL) || DEFAULT_EXCHANGE_RATES.HNL,
-          });
+          };
+          cachedRates = newRates;
+          setRates(newRates);
         }
         if (data.updatedAt) {
+          cachedRatesUpdatedAt = data.updatedAt;
           setRatesUpdatedAt(data.updatedAt);
         }
       }
@@ -137,12 +159,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     fetchRates();
 
     const handleSettingsUpdate = () => {
-      fetchGlobalSettings();
-      fetchRates();
+      fetchGlobalSettings(true);
+      fetchRates(true);
     };
 
     const handleProfileUpdate = () => {
-      fetchUserProfile();
+      fetchUserProfile(true);
     };
 
     window.addEventListener('crm-settings-updated', handleSettingsUpdate);

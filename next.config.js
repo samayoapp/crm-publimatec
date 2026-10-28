@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Support hot reload inside Docker containers using polling if needed
+  swcMinify: true,
+  compress: true,
+  // Optimizar hot reload dentro del contenedor Docker sin escanear node_modules ni .next
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
         poll: 1000,
         aggregateTimeout: 300,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
       };
     }
     return config;

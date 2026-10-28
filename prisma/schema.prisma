@@ -47,6 +47,8 @@ model Company {
   updatedAt  DateTime   @updatedAt
   contacts   Contact[]
   proposals  Proposal[]
+
+  @@index([name])
 }
 
 model Contact {
@@ -71,6 +73,11 @@ model Contact {
   proposals        Proposal[]
   activities       Activity[]
   documents        Document[]
+
+  @@index([assignedToId])
+  @@index([companyId])
+  @@index([nextFollowUp])
+  @@index([updatedAt])
 }
 
 model Proposal {
@@ -92,6 +99,12 @@ model Proposal {
   updatedAt      DateTime   @updatedAt
   activities     Activity[]
   documents      Document[]
+
+  @@index([assignedToId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([stage])
+  @@index([updatedAt])
 }
 
 model Activity {
@@ -105,6 +118,11 @@ model Activity {
   userId      String?
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
+
+  @@index([contactId])
+  @@index([proposalId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Setting {
