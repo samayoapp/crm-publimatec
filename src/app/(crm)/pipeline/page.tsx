@@ -30,13 +30,18 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
 import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
+import { crmCache } from '@/lib/crmCache';
 
 export default function PipelinePage() {
   const { currency, currencySymbol, formatMoney, convert } = useSettings();
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [advisors, setAdvisors] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // SPA Cache: Inicialización instantánea desde memoria (0 ms)
+  const cachedProps = crmCache.getProposals();
+  const cachedTeam = crmCache.getTeam();
+  const [proposals, setProposals] = useState<any[]>(() => cachedProps.data || []);
+  const [advisors, setAdvisors] = useState<any[]>(() => cachedTeam.data || []);
+  const [currentUser, setCurrentUser] = useState<any>(() => crmCache.getUser());
+  const [loading, setLoading] = useState(() => !cachedProps.data);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,17 +61,26 @@ export default function PipelinePage() {
     }
   };
 
-  const fetchProposals = () => {
+  const fetchProposals = (isBackground = false) => {
     let url = '/api/proposals?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (currentUser?.role === 'ADMIN' && selectedAdvisor) {
       url += `assignedToId=${encodeURIComponent(selectedAdvisor)}&`;
     }
 
+    if (!isBackground && !proposals.length) {
+      setLoading(true);
+    }
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (data.proposals) setProposals(data.proposals);
+        if (data.proposals) {
+          setProposals(data.proposals);
+          if (!search && !selectedAdvisor) {
+            crmCache.setProposals(data.proposals);
+          }
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -76,19 +90,35 @@ export default function PipelinePage() {
   };
 
   const fetchAdvisors = () => {
+    const cached = crmCache.getTeam();
+    if (cached.data) {
+      setAdvisors(cached.data);
+      if (!cached.isStale) return;
+    }
     fetch('/api/team')
       .then((res) => res.json())
       .then((data) => {
-        if (data.team) setAdvisors(data.team);
+        if (data.team) {
+          setAdvisors(data.team);
+          crmCache.setTeam(data.team);
+        }
       })
       .catch((err) => console.error(err));
   };
 
   const fetchUser = () => {
+    const cachedUser = crmCache.getUser();
+    if (cachedUser) {
+      setCurrentUser(cachedUser);
+      return;
+    }
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+          crmCache.setUser(data.user);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -99,16 +129,20 @@ export default function PipelinePage() {
   }, []);
 
   useEffect(() => {
-    fetchProposals();
+    const isBackground = proposals.length > 0 && !search && !selectedAdvisor;
+    fetchProposals(isBackground);
 
-    const handleReload = () => fetchProposals();
+    const handleReload = () => {
+      crmCache.invalidate('proposals');
+      fetchProposals(false);
+    };
     window.addEventListener('crm-proposal-saved', handleReload);
     window.addEventListener('crm-lead-saved', handleReload);
     return () => {
       window.removeEventListener('crm-proposal-saved', handleReload);
       window.removeEventListener('crm-lead-saved', handleReload);
     };
-  }, [search, selectedAdvisor]);
+  }, [search, selectedAdvisor, currentUser?.role]);
 
   const updateStage = async (proposalId: string, newStage: string) => {
     // Optimistic update

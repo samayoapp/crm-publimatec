@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import LeadModal from '@/components/LeadModal';
 import WelcomeModal from '@/components/WelcomeModal';
 import { SettingsProvider } from '@/lib/settingsContext';
+import { crmCache } from '@/lib/crmCache';
 
 interface CrmShellProps {
   user: {
@@ -23,6 +24,22 @@ export default function CrmShell({ user, children }: CrmShellProps) {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
 
   useEffect(() => {
+    if (user) {
+      crmCache.setUser(user);
+    }
+    // Precarga silenciosa en background después de montar la shell para navegación instantánea
+    const timer = setTimeout(() => {
+      crmCache.prefetchCoreData();
+    }, 300);
+
+    // Escuchar eventos de guardado para invalidar caché
+    const handleInvalidate = () => {
+      crmCache.invalidate('all');
+    };
+    window.addEventListener('crm-lead-saved', handleInvalidate);
+    window.addEventListener('crm-proposal-saved', handleInvalidate);
+    window.addEventListener('crm-contact-saved', handleInvalidate);
+
     // PopUp de Bienvenida / Frase al loguearse
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -37,11 +54,18 @@ export default function CrmShell({ user, children }: CrmShellProps) {
 
     const handleOpenQuote = () => setIsQuoteModalOpen(true);
     window.addEventListener('crm-show-quote', handleOpenQuote);
-    return () => window.removeEventListener('crm-show-quote', handleOpenQuote);
-  }, []);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('crm-lead-saved', handleInvalidate);
+      window.removeEventListener('crm-proposal-saved', handleInvalidate);
+      window.removeEventListener('crm-contact-saved', handleInvalidate);
+      window.removeEventListener('crm-show-quote', handleOpenQuote);
+    };
+  }, [user]);
 
   const handleSaved = () => {
-    // Dispatch custom event or reload current page
+    crmCache.invalidate('all');
     window.dispatchEvent(new CustomEvent('crm-lead-saved'));
   };
 

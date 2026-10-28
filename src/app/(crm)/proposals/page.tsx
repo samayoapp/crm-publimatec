@@ -75,12 +75,18 @@ const getRoleBadgeStyle = (title?: string | null) => {
   return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
 };
 
+import { crmCache } from '@/lib/crmCache';
+
 export default function ProposalsPage() {
   const { currency, currencySymbol, formatMoney, convert } = useSettings();
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [advisors, setAdvisors] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // SPA Cache: Inicialización instantánea desde memoria (0 ms)
+  const cachedProps = crmCache.getProposals();
+  const cachedTeam = crmCache.getTeam();
+  const [proposals, setProposals] = useState<any[]>(() => cachedProps.data || []);
+  const [advisors, setAdvisors] = useState<any[]>(() => cachedTeam.data || []);
+  const [currentUser, setCurrentUser] = useState<any>(() => crmCache.getUser());
+  const [loading, setLoading] = useState(() => !cachedProps.data);
 
   // Filters, Sort & View Mode
   const [search, setSearch] = useState('');
@@ -93,7 +99,7 @@ export default function ProposalsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<any | null>(null);
 
-  const fetchProposals = () => {
+  const fetchProposals = (isBackground = false) => {
     let url = '/api/proposals?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (selectedStage) url += `stage=${encodeURIComponent(selectedStage)}&`;
@@ -101,10 +107,19 @@ export default function ProposalsPage() {
       url += `assignedToId=${encodeURIComponent(selectedAdvisor)}&`;
     }
 
+    if (!isBackground && !proposals.length) {
+      setLoading(true);
+    }
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (data.proposals) setProposals(data.proposals);
+        if (data.proposals) {
+          setProposals(data.proposals);
+          if (!search && !selectedStage && !selectedAdvisor) {
+            crmCache.setProposals(data.proposals);
+          }
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -114,19 +129,35 @@ export default function ProposalsPage() {
   };
 
   const fetchAdvisors = () => {
+    const cached = crmCache.getTeam();
+    if (cached.data) {
+      setAdvisors(cached.data);
+      if (!cached.isStale) return;
+    }
     fetch('/api/team')
       .then((res) => res.json())
       .then((data) => {
-        if (data.team) setAdvisors(data.team);
+        if (data.team) {
+          setAdvisors(data.team);
+          crmCache.setTeam(data.team);
+        }
       })
       .catch((err) => console.error(err));
   };
 
   const fetchUser = () => {
+    const cachedUser = crmCache.getUser();
+    if (cachedUser) {
+      setCurrentUser(cachedUser);
+      return;
+    }
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+          crmCache.setUser(data.user);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -137,16 +168,20 @@ export default function ProposalsPage() {
   }, []);
 
   useEffect(() => {
-    fetchProposals();
+    const isBackground = proposals.length > 0 && !search && !selectedStage && !selectedAdvisor;
+    fetchProposals(isBackground);
 
-    const handleReload = () => fetchProposals();
+    const handleReload = () => {
+      crmCache.invalidate('proposals');
+      fetchProposals(false);
+    };
     window.addEventListener('crm-proposal-saved', handleReload);
     window.addEventListener('crm-lead-saved', handleReload);
     return () => {
       window.removeEventListener('crm-proposal-saved', handleReload);
       window.removeEventListener('crm-lead-saved', handleReload);
     };
-  }, [search, selectedStage, selectedAdvisor]);
+  }, [search, selectedStage, selectedAdvisor, currentUser?.role]);
 
   const updateStage = async (proposalId: string, newStage: string) => {
     setProposals((prev) =>

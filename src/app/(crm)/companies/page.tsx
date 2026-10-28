@@ -77,11 +77,16 @@ const getRoleBadgeStyle = (title?: string | null) => {
   return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
 };
 
+import { crmCache } from '@/lib/crmCache';
+
 export default function CompaniesPage() {
   const { currency, formatMoney } = useSettings();
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // SPA Cache: Carga instantánea desde memoria (0 ms)
+  const cachedCompanies = crmCache.getCompanies();
+  const [companies, setCompanies] = useState<any[]>(() => cachedCompanies.data || []);
+  const [currentUser, setCurrentUser] = useState<any>(() => crmCache.getUser());
+  const [loading, setLoading] = useState(() => !cachedCompanies.data);
 
   // Filters, Sort & View Mode
   const [search, setSearch] = useState('');
@@ -97,15 +102,24 @@ export default function CompaniesPage() {
   const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
   const [selectedCompanyForPerson, setSelectedCompanyForPerson] = useState<any | null>(null);
 
-  const fetchCompanies = () => {
+  const fetchCompanies = (isBackground = false) => {
     let url = '/api/companies?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (selectedIndustry) url += `industry=${encodeURIComponent(selectedIndustry)}&`;
 
+    if (!isBackground && !companies.length) {
+      setLoading(true);
+    }
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (data.companies) setCompanies(data.companies);
+        if (data.companies) {
+          setCompanies(data.companies);
+          if (!search && !selectedIndustry) {
+            crmCache.setCompanies(data.companies);
+          }
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -115,10 +129,18 @@ export default function CompaniesPage() {
   };
 
   const fetchUser = () => {
+    const cachedUser = crmCache.getUser();
+    if (cachedUser) {
+      setCurrentUser(cachedUser);
+      return;
+    }
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+          crmCache.setUser(data.user);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -134,6 +156,7 @@ export default function CompaniesPage() {
     try {
       const res = await fetch(`/api/companies/${comp.id}`, { method: 'DELETE' });
       if (res.ok) {
+        crmCache.invalidate('companies');
         fetchCompanies();
       } else {
         const data = await res.json();
@@ -149,9 +172,13 @@ export default function CompaniesPage() {
   }, []);
 
   useEffect(() => {
-    fetchCompanies();
+    const isBackground = companies.length > 0 && !search && !selectedIndustry;
+    fetchCompanies(isBackground);
 
-    const handleReload = () => fetchCompanies();
+    const handleReload = () => {
+      crmCache.invalidate('companies');
+      fetchCompanies(false);
+    };
     window.addEventListener('crm-contact-saved', handleReload);
     window.addEventListener('crm-lead-saved', handleReload);
     return () => {

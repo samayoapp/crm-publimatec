@@ -32,6 +32,8 @@ import LeadModal from '@/components/LeadModal';
 import { getStalenessInfo, formatFriendlyDate, getDaysDiff } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 
+import { crmCache } from '@/lib/crmCache';
+
 const getRoleBadgeStyle = (title?: string | null) => {
   if (!title) {
     return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
@@ -79,9 +81,12 @@ const getRoleBadgeStyle = (title?: string | null) => {
 
 export default function ContactsListPage() {
   const { currencySymbol, formatMoney, convert } = useSettings();
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // SPA Cache: Inicialización instantánea desde memoria (0 ms)
+  const cachedContacts = crmCache.getContacts();
+  const [contacts, setContacts] = useState<any[]>(() => cachedContacts.data || []);
+  const [currentUser, setCurrentUser] = useState<any>(() => crmCache.getUser());
+  const [loading, setLoading] = useState(() => !cachedContacts.data);
 
   // Filters, Sort & View Mode
   const [search, setSearch] = useState('');
@@ -93,14 +98,23 @@ export default function ContactsListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [contactToEdit, setContactToEdit] = useState<any | null>(null);
 
-  const fetchContacts = () => {
+  const fetchContacts = (isBackground = false) => {
     let url = '/api/contacts?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
+
+    if (!isBackground && !contacts.length) {
+      setLoading(true);
+    }
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (data.contacts) setContacts(data.contacts);
+        if (data.contacts) {
+          setContacts(data.contacts);
+          if (!search) {
+            crmCache.setContacts(data.contacts);
+          }
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -110,10 +124,18 @@ export default function ContactsListPage() {
   };
 
   const fetchUser = () => {
+    const cachedUser = crmCache.getUser();
+    if (cachedUser) {
+      setCurrentUser(cachedUser);
+      return;
+    }
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+          crmCache.setUser(data.user);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -125,6 +147,7 @@ export default function ContactsListPage() {
     try {
       const res = await fetch(`/api/contacts/${contact.id}`, { method: 'DELETE' });
       if (res.ok) {
+        crmCache.invalidate('contacts');
         window.dispatchEvent(new CustomEvent('crm-contact-saved'));
         window.dispatchEvent(new CustomEvent('crm-proposal-saved'));
         fetchContacts();
@@ -138,10 +161,15 @@ export default function ContactsListPage() {
   };
 
   useEffect(() => {
-    fetchContacts();
+    // Si ya tenemos datos y están frescos, la revalidación es silenciosa en background
+    const isBackground = contacts.length > 0;
+    fetchContacts(isBackground);
     fetchUser();
 
-    const handleReload = () => fetchContacts();
+    const handleReload = () => {
+      crmCache.invalidate('contacts');
+      fetchContacts(false);
+    };
     window.addEventListener('crm-contact-saved', handleReload);
     window.addEventListener('crm-lead-saved', handleReload);
     return () => {

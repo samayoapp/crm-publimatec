@@ -32,11 +32,15 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import LeadModal from '@/components/LeadModal';
 import { formatFriendlyDate } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
+import { crmCache } from '@/lib/crmCache';
 
 export default function DashboardPage() {
   const { currency, currencySymbol, formatMoney } = useSettings();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // SPA Cache: Inicialización instantánea desde memoria (0 ms)
+  const cachedDashboard = crmCache.getDashboard();
+  const [data, setData] = useState<any>(() => cachedDashboard.data);
+  const [loading, setLoading] = useState(() => !cachedDashboard.data);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
 
@@ -61,11 +65,16 @@ export default function DashboardPage() {
 
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
-  const fetchDashboard = () => {
+  const fetchDashboard = (isBackground = false) => {
+    if (!isBackground && !data) {
+      setLoading(true);
+    }
+
     fetch('/api/dashboard')
       .then((res) => res.json())
       .then((d) => {
         setData(d);
+        crmCache.setDashboard(d);
         setLoading(false);
       })
       .catch((err) => {
@@ -75,10 +84,12 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchDashboard();
+    const isBackground = !!data;
+    fetchDashboard(isBackground);
 
     const handleReload = () => {
-      fetchDashboard();
+      crmCache.invalidate('dashboard');
+      fetchDashboard(false);
     };
     window.addEventListener('crm-lead-saved', handleReload);
     window.addEventListener('crm-proposal-saved', handleReload);

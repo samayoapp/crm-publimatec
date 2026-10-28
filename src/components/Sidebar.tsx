@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { crmCache } from '@/lib/crmCache';
 import {
   LayoutDashboard,
   Kanban,
@@ -231,7 +232,13 @@ export default function Sidebar({ user, isOpen = false, onClose, onOpenQuote }: 
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       onClick={onClose}
+                      onMouseEnter={() => {
+                        try {
+                          crmCache.prefetchCoreData();
+                        } catch (e) {}
+                      }}
                       className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
                         isActive
                           ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 font-semibold'
