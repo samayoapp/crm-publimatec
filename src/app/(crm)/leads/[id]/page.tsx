@@ -273,10 +273,15 @@ export default function ContactDetailPage() {
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                📞 {contact.phone}
-              </span>
+              {contact.phone && (
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  📞 {contact.phone}
+                </span>
+              )}
               {contact.email && <span>✉️ {contact.email}</span>}
+              {!contact.phone && !contact.email && (
+                <span className="text-slate-400 italic">Sin datos directos de contacto</span>
+              )}
               {contact.assignedTo && (
                 <span>👤 Vendedor: <strong className="text-slate-800 dark:text-slate-200">{contact.assignedTo.name}</strong></span>
               )}

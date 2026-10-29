@@ -98,9 +98,9 @@ export async function POST(req: Request) {
 
     const data = await req.json();
 
-    if (!data.name || !data.phone) {
+    if (!data.name || !data.name.trim()) {
       return NextResponse.json(
-        { error: 'Nombre de la persona y WhatsApp son requeridos' },
+        { error: 'El nombre de la persona es requerido' },
         { status: 400 }
       );
     }
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
         avatarUrl: data.avatarUrl ? data.avatarUrl.trim() : null,
         companyId,
         companyName,
-        phone: data.phone.trim().replace(/[^0-9+]/g, ''),
+        phone: data.phone ? data.phone.trim().replace(/[^0-9+]/g, '') : '',
         email: data.email ? data.email.trim() : null,
         notes: data.notes ? data.notes.trim() : null,
         nextFollowUp: finalNextFollowUp,

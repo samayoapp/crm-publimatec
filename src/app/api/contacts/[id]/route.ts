@@ -118,7 +118,7 @@ export async function PATCH(
     if (data.name !== undefined) updateData.name = data.name.trim();
     if (data.jobTitle !== undefined) updateData.jobTitle = data.jobTitle ? data.jobTitle.trim() : null;
     if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
-    if (data.phone !== undefined) updateData.phone = data.phone.trim();
+    if (data.phone !== undefined) updateData.phone = data.phone ? data.phone.trim().replace(/[^0-9+]/g, '') : '';
     if (data.email !== undefined) updateData.email = data.email ? data.email.trim() : null;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.nextFollowUp !== undefined) {
