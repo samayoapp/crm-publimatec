@@ -24,6 +24,8 @@ fi
 
 echo "📥 2/4. Descargando última versión de código desde GitHub..."
 git pull origin main
+echo "   📌 Último commit en producción:"
+git log -1 --oneline
 
 echo "🛡️ 3/4. Verificando y sincronizando esquema de base de datos de forma segura..."
 for sql_file in prisma/migrations/*.sql; do
@@ -36,10 +38,12 @@ done
 # prisma generate dentro del contenedor para actualizar los tipos
 docker exec publimatec_crm_app npx prisma generate
 
-echo "🔄 4/4. Reiniciando contenedor de la aplicación..."
+echo "🔄 4/4. Limpiando caché de compilación y reiniciando contenedor..."
+docker exec publimatec_crm_app rm -rf .next || true
 docker compose restart publimatec_crm_app
 
 echo "=============================================="
 echo "🎉 ¡Despliegue completado exitosamente!"
 echo "   Respaldo preventivo: $BACKUP_FILE"
+echo "   💡 Recuerda recargar tu navegador con Ctrl + Shift + R (o modo incógnito)"
 echo "=============================================="
