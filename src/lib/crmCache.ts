@@ -6,8 +6,7 @@
  */
 
 interface CacheStore {
-  dashboard: any | null;
-  dashboardTimestamp: number;
+  dashboard: Record<string, { data: any; timestamp: number }>;
   contacts: any[] | null;
   contactsTimestamp: number;
   companies: any[] | null;
@@ -20,8 +19,7 @@ interface CacheStore {
 }
 
 const memoryStore: CacheStore = {
-  dashboard: null,
-  dashboardTimestamp: 0,
+  dashboard: {},
   contacts: null,
   contactsTimestamp: 0,
   companies: null,
@@ -61,16 +59,19 @@ export const crmCache = {
     }
   },
 
-  // Dashboard
-  getDashboard(): { data: any | null; isStale: boolean } {
+  // Dashboard (soporta clave por filtro de asesor, por defecto 'ME')
+  getDashboard(filterKey: string = 'ME'): { data: any | null; isStale: boolean } {
+    const entry = memoryStore.dashboard[filterKey];
     return {
-      data: memoryStore.dashboard,
-      isStale: Date.now() - memoryStore.dashboardTimestamp > STALE_TIME,
+      data: entry?.data || null,
+      isStale: !entry || Date.now() - entry.timestamp > STALE_TIME,
     };
   },
-  setDashboard(data: any) {
-    memoryStore.dashboard = data;
-    memoryStore.dashboardTimestamp = Date.now();
+  setDashboard(data: any, filterKey: string = 'ME') {
+    memoryStore.dashboard[filterKey] = {
+      data,
+      timestamp: Date.now(),
+    };
   },
 
   // Contacts
@@ -124,22 +125,22 @@ export const crmCache = {
   // Invalidate specific cache
   invalidate(key?: 'dashboard' | 'contacts' | 'companies' | 'proposals' | 'team' | 'all') {
     if (!key || key === 'all') {
-      memoryStore.dashboardTimestamp = 0;
+      memoryStore.dashboard = {};
       memoryStore.contactsTimestamp = 0;
       memoryStore.companiesTimestamp = 0;
       memoryStore.proposalsTimestamp = 0;
       memoryStore.teamTimestamp = 0;
     } else if (key === 'dashboard') {
-      memoryStore.dashboardTimestamp = 0;
+      memoryStore.dashboard = {};
     } else if (key === 'contacts') {
       memoryStore.contactsTimestamp = 0;
-      memoryStore.dashboardTimestamp = 0;
+      memoryStore.dashboard = {};
     } else if (key === 'companies') {
       memoryStore.companiesTimestamp = 0;
       memoryStore.contactsTimestamp = 0;
     } else if (key === 'proposals') {
       memoryStore.proposalsTimestamp = 0;
-      memoryStore.dashboardTimestamp = 0;
+      memoryStore.dashboard = {};
     } else if (key === 'team') {
       memoryStore.teamTimestamp = 0;
     }

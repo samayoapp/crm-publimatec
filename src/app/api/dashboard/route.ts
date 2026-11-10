@@ -5,7 +5,7 @@ import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 import { getBusinessDayBoundaries } from '@/lib/timeUtils';
 import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -14,9 +14,53 @@ export async function GET() {
 
     const targetCurrency = user.preferredCurrency || 'HNL';
 
-    const isAdvisor = user.role !== 'ADMIN';
-    const whereProp: any = isAdvisor ? { assignedToId: user.id } : {};
-    const whereContact: any = isAdvisor ? { assignedToId: user.id } : {};
+    const { searchParams } = new URL(request.url);
+    const requestedAdvisor = searchParams.get('advisorId') || 'ME';
+
+    // Por defecto (incluso para ADMIN) se muestra SOLO LO MÍO ('ME').
+    // Solo ADMIN puede cambiar el filtro a 'ALL', 'OTHERS' o un ID de colaborador específico.
+    const effectiveFilter = user.role === 'ADMIN' ? requestedAdvisor : 'ME';
+
+    let whereProp: any = {};
+    let whereContact: any = {};
+    let whereActivity: any = {};
+
+    if (effectiveFilter === 'ME') {
+      whereProp = { assignedToId: user.id };
+      whereContact = { assignedToId: user.id };
+      whereActivity = {
+        OR: [
+          { userId: user.id },
+          { proposal: { assignedToId: user.id } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
+        ],
+      };
+    } else if (effectiveFilter === 'OTHERS') {
+      whereProp = { assignedToId: { not: user.id } };
+      whereContact = { assignedToId: { not: user.id } };
+      whereActivity = {
+        OR: [
+          { userId: { not: user.id } },
+          { proposal: { assignedToId: { not: user.id } } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: { not: user.id } } }] },
+        ],
+      };
+    } else if (effectiveFilter === 'ALL') {
+      whereProp = {};
+      whereContact = {};
+      whereActivity = {};
+    } else {
+      // Un colaborador en específico (effectiveFilter = userId)
+      whereProp = { assignedToId: effectiveFilter };
+      whereContact = { assignedToId: effectiveFilter };
+      whereActivity = {
+        OR: [
+          { userId: effectiveFilter },
+          { proposal: { assignedToId: effectiveFilter } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: effectiveFilter } }] },
+        ],
+      };
+    }
 
     const now = new Date();
     const { endOfToday, endOfTomorrow } = getBusinessDayBoundaries();
@@ -31,6 +75,7 @@ export async function GET() {
       recentActivities,
       pendingApprovalUsers,
       unreadNotificationsCount,
+      advisors,
     ] = await Promise.all([
       // 1. Configuración global, tasas y frases (1 sola consulta en vez de 2)
       prisma.setting.findUnique({
@@ -111,15 +156,7 @@ export async function GET() {
 
       // 6. Actividades recientes
       prisma.activity.findMany({
-        where: isAdvisor
-          ? {
-              OR: [
-                { userId: user.id },
-                { proposal: { assignedToId: user.id } },
-                { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
-              ],
-            }
-          : {},
+        where: whereActivity,
         include: {
           user: { select: { name: true } },
           contact: { select: { id: true, name: true, companyName: true } },
@@ -163,6 +200,23 @@ export async function GET() {
             },
           })
         : Promise.resolve(0),
+
+      // 9. Lista de colaboradores activos para el selector de filtro del ADMIN
+      user.role === 'ADMIN'
+        ? prisma.user.findMany({
+            where: {
+              active: true,
+              approved: true,
+            },
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              jobTitle: true,
+            },
+            orderBy: { name: 'asc' },
+          })
+        : Promise.resolve([]),
     ]);
 
     const rates = (settings?.exchangeRates as Record<string, number>) || DEFAULT_EXCHANGE_RATES;
@@ -252,6 +306,8 @@ export async function GET() {
       waitingListFollowUps,
       pendingApprovalUsers,
       recentActivities,
+      advisors,
+      activeFilter: effectiveFilter,
     });
   } catch (error) {
     console.error('Error al generar dashboard:', error);
