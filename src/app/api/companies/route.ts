@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
 
 export async function GET(req: Request) {
@@ -15,6 +15,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const industry = searchParams.get('industry');
+    const assignedToId = searchParams.get('assignedToId');
+
+    const { rawFilter, prismaFilter } = getEffectiveAdvisorFilter(user, assignedToId);
 
     const where: any = {};
 
@@ -22,18 +25,37 @@ export async function GET(req: Request) {
       where.industry = industry;
     }
 
+    // Si el ADMIN tiene filtro activo (ej. 'ME', 'OTHERS', o un asesor específico),
+    // filtrar las empresas que tienen contactos o propuestas bajo ese filtro
+    if (user.role === 'ADMIN' && rawFilter !== 'ALL') {
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { contacts: { some: prismaFilter } },
+            { proposals: { some: prismaFilter } },
+          ],
+        },
+      ];
+    }
+
     if (search) {
       const searchTerms = {
         contains: search,
         mode: 'insensitive' as const,
       };
-      where.OR = [
-        { name: searchTerms },
-        { legalName: searchTerms },
-        { taxId: searchTerms },
-        { industry: searchTerms },
-        { city: searchTerms },
-        { website: searchTerms },
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { name: searchTerms },
+            { legalName: searchTerms },
+            { taxId: searchTerms },
+            { industry: searchTerms },
+            { city: searchTerms },
+            { website: searchTerms },
+          ],
+        },
       ];
     }
 
@@ -47,6 +69,7 @@ export async function GET(req: Request) {
         where,
         include: {
           contacts: {
+            where: user.role === 'ADMIN' ? prismaFilter : {},
             select: {
               id: true,
               name: true,
@@ -61,7 +84,7 @@ export async function GET(req: Request) {
             },
           },
           proposals: {
-            where: user.role === 'ADMIN' ? {} : { assignedToId: user.id },
+            where: prismaFilter,
             select: {
               id: true,
               title: true,

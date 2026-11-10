@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
@@ -15,16 +15,14 @@ export async function GET(req: Request) {
     const assignedToId = searchParams.get('assignedToId');
     const search = searchParams.get('search');
 
-    const where: any = {};
+    const { prismaFilter } = getEffectiveAdvisorFilter(user, assignedToId);
+
+    const where: any = {
+      ...prismaFilter,
+    };
 
     if (stage) where.stage = stage;
     if (contactId) where.contactId = contactId;
-
-    if (user.role !== 'ADMIN') {
-      where.assignedToId = user.id;
-    } else if (assignedToId) {
-      where.assignedToId = assignedToId;
-    }
 
     if (search) {
       const searchTerms = {

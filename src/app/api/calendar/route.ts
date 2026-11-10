@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
@@ -14,17 +14,19 @@ export async function GET(req: Request) {
     const startStr = searchParams.get('start');
     const endStr = searchParams.get('end');
 
+    const { prismaFilter } = getEffectiveAdvisorFilter(user, advisorId);
+
     const contactWhere: any = {
+      ...prismaFilter,
       nextFollowUp: { not: null },
     };
 
     if (user.role === 'ASESOR') {
+      delete contactWhere.assignedToId;
       contactWhere.OR = [
         { assignedToId: user.id },
         { assignedToId: null },
       ];
-    } else if (advisorId) {
-      contactWhere.assignedToId = advisorId;
     }
 
     if (startStr || endStr) {
@@ -98,13 +100,9 @@ export async function GET(req: Request) {
 
     // Also fetch recent or upcoming proposal closing milestones
     const proposalWhere: any = {
+      ...prismaFilter,
       closedAt: { not: null },
     };
-    if (user.role !== 'ADMIN') {
-      proposalWhere.assignedToId = user.id;
-    } else if (advisorId) {
-      proposalWhere.assignedToId = advisorId;
-    }
     if (startStr || endStr) {
       proposalWhere.closedAt = {
         ...(startStr ? { gte: new Date(startStr) } : {}),

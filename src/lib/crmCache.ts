@@ -16,6 +16,7 @@ interface CacheStore {
   team: any[] | null;
   teamTimestamp: number;
   currentUser: any | null;
+  advisorFilter: string;
 }
 
 const memoryStore: CacheStore = {
@@ -29,6 +30,7 @@ const memoryStore: CacheStore = {
   team: null,
   teamTimestamp: 0,
   currentUser: null,
+  advisorFilter: 'ME',
 };
 
 // Duración de frescura antes de pedir en background (45 segundos)
@@ -59,16 +61,57 @@ export const crmCache = {
     }
   },
 
-  // Dashboard (soporta clave por filtro de asesor, por defecto 'ME')
-  getDashboard(filterKey: string = 'ME'): { data: any | null; isStale: boolean } {
-    const entry = memoryStore.dashboard[filterKey];
+  // Global Advisor Filter (para ADMIN: 'ME' por defecto, 'OTHERS', 'ALL', o ID de colaborador)
+  getAdvisorFilter(): string {
+    if (typeof window !== 'undefined') {
+      try {
+        const match = document.cookie.match(/(?:^|;\s*)crm_advisor_filter=([^;]*)/);
+        if (match && match[1]) {
+          const val = decodeURIComponent(match[1]);
+          memoryStore.advisorFilter = val;
+          return val;
+        }
+        const stored = sessionStorage.getItem('crm_advisor_filter');
+        if (stored) {
+          memoryStore.advisorFilter = stored;
+          document.cookie = `crm_advisor_filter=${encodeURIComponent(stored)}; path=/; max-age=2592000; SameSite=Lax`;
+          return stored;
+        }
+      } catch (e) {}
+    }
+    return memoryStore.advisorFilter || 'ME';
+  },
+  setAdvisorFilter(filter: string) {
+    const clean = filter || 'ME';
+    memoryStore.advisorFilter = clean;
+    if (typeof window !== 'undefined') {
+      try {
+        document.cookie = `crm_advisor_filter=${encodeURIComponent(clean)}; path=/; max-age=2592000; SameSite=Lax`;
+        sessionStorage.setItem('crm_advisor_filter', clean);
+      } catch (e) {}
+    }
+    // Invalidar cachés para que todas las pantallas recarguen con el nuevo filtro
+    memoryStore.contacts = null;
+    memoryStore.contactsTimestamp = 0;
+    memoryStore.companies = null;
+    memoryStore.companiesTimestamp = 0;
+    memoryStore.proposals = null;
+    memoryStore.proposalsTimestamp = 0;
+    memoryStore.dashboard = {};
+  },
+
+  // Dashboard (soporta clave por filtro de asesor, por defecto el filtro global activo)
+  getDashboard(filterKey?: string): { data: any | null; isStale: boolean } {
+    const key = filterKey || this.getAdvisorFilter();
+    const entry = memoryStore.dashboard[key];
     return {
       data: entry?.data || null,
       isStale: !entry || Date.now() - entry.timestamp > STALE_TIME,
     };
   },
-  setDashboard(data: any, filterKey: string = 'ME') {
-    memoryStore.dashboard[filterKey] = {
+  setDashboard(data: any, filterKey?: string) {
+    const key = filterKey || this.getAdvisorFilter();
+    memoryStore.dashboard[key] = {
       data,
       timestamp: Date.now(),
     };

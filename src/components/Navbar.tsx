@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Menu, LogOut } from 'lucide-react';
+import { Plus, Menu, LogOut, Users } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import NotificationBell from '@/components/NotificationBell';
+import { crmCache } from '@/lib/crmCache';
 
 interface NavbarProps {
   title?: string;
@@ -27,6 +29,51 @@ export default function Navbar({
   onToggleSidebar,
 }: NavbarProps) {
   const router = useRouter();
+  const isAdmin = user?.role === 'ADMIN';
+
+  const [advisorFilter, setAdvisorFilter] = useState<string>('ME');
+  const [advisors, setAdvisors] = useState<any[]>(() => crmCache.getTeam().data || []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const initialFilter = crmCache.getAdvisorFilter();
+    setAdvisorFilter(initialFilter);
+    // Asegurar que la cookie esté sincronizada desde el inicio
+    crmCache.setAdvisorFilter(initialFilter);
+
+    const cachedTeam = crmCache.getTeam();
+    if (cachedTeam.data && cachedTeam.data.length > 0) {
+      setAdvisors(cachedTeam.data);
+    }
+    fetch('/api/team')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.team) {
+          setAdvisors(d.team);
+          crmCache.setTeam(d.team);
+        }
+      })
+      .catch(() => {});
+
+    const handleExternalSync = (e: any) => {
+      const nextVal = e?.detail?.filter || crmCache.getAdvisorFilter();
+      setAdvisorFilter(nextVal);
+    };
+    window.addEventListener('crm-advisor-filter-changed', handleExternalSync);
+    return () => {
+      window.removeEventListener('crm-advisor-filter-changed', handleExternalSync);
+    };
+  }, [isAdmin]);
+
+  const handleGlobalFilterChange = (newFilter: string) => {
+    setAdvisorFilter(newFilter);
+    crmCache.setAdvisorFilter(newFilter);
+    window.dispatchEvent(new CustomEvent('crm-advisor-filter-changed', { detail: { filter: newFilter } }));
+    window.dispatchEvent(new CustomEvent('crm-lead-saved'));
+    window.dispatchEvent(new CustomEvent('crm-proposal-saved'));
+    window.dispatchEvent(new CustomEvent('crm-contact-saved'));
+  };
 
   const handleLogout = async () => {
     try {
@@ -104,8 +151,52 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Lado Derecho: Tema + Notificaciones + Botón Nuevo Prospecto */}
+      {/* Lado Derecho: Filtro Global ADMIN + Tema + Notificaciones + Botón Nuevo Prospecto */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* FILTRO GLOBAL PERMANENTE (EXCLUSIVO PARA ADMIN) */}
+        {isAdmin && (
+          <div className="flex items-center gap-1.5 bg-indigo-50/90 dark:bg-indigo-950/50 border-2 border-indigo-500/40 dark:border-indigo-500/50 rounded-xl px-2 sm:px-3 py-1.5 shadow-xs transition-all">
+            <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 hidden xs:inline" />
+            <span className="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 hidden md:inline">
+              Vista Global:
+            </span>
+            <select
+              value={advisorFilter}
+              onChange={(e) => handleGlobalFilterChange(e.target.value)}
+              className="text-[11px] sm:text-xs font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[220px] truncate"
+              title="Filtro Global de Administrador: afecta Resumen, Contactos, Propuestas, Embudo, Empresas, Calendario y Reportes"
+            >
+              <option value="ME" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
+                👤 Solo lo mío ({user.name.split(' ')[0]})
+              </option>
+              <option value="OTHERS" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
+                👥 Solo los demás colaboradores
+              </option>
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
+                🏢 Todo el equipo (Global)
+              </option>
+              {advisors.filter((a) => a.id !== user.id && a.active !== false && a.approved !== false).length > 0 && (
+                <optgroup
+                  label="Por Colaborador Específico"
+                  className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400"
+                >
+                  {advisors
+                    .filter((a) => a.id !== user.id && a.active !== false && a.approved !== false)
+                    .map((adv) => (
+                      <option
+                        key={adv.id}
+                        value={adv.id}
+                        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
+                      >
+                        👨‍💼 {adv.name}
+                      </option>
+                    ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+        )}
+
         {/* Quick Theme Toggle Icon */}
         <ThemeToggle variant="compact" />
 

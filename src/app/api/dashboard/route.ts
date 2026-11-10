@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
 import { getBusinessDayBoundaries } from '@/lib/timeUtils';
 import { convertCurrency, DEFAULT_EXCHANGE_RATES } from '@/lib/currency';
@@ -15,52 +15,14 @@ export async function GET(request: Request) {
     const targetCurrency = user.preferredCurrency || 'HNL';
 
     const { searchParams } = new URL(request.url);
-    const requestedAdvisor = searchParams.get('advisorId') || 'ME';
+    const {
+      rawFilter: effectiveFilter,
+      prismaFilter,
+      activityFilter: whereActivity,
+    } = getEffectiveAdvisorFilter(user, searchParams.get('advisorId'));
 
-    // Por defecto (incluso para ADMIN) se muestra SOLO LO MÍO ('ME').
-    // Solo ADMIN puede cambiar el filtro a 'ALL', 'OTHERS' o un ID de colaborador específico.
-    const effectiveFilter = user.role === 'ADMIN' ? requestedAdvisor : 'ME';
-
-    let whereProp: any = {};
-    let whereContact: any = {};
-    let whereActivity: any = {};
-
-    if (effectiveFilter === 'ME') {
-      whereProp = { assignedToId: user.id };
-      whereContact = { assignedToId: user.id };
-      whereActivity = {
-        OR: [
-          { userId: user.id },
-          { proposal: { assignedToId: user.id } },
-          { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
-        ],
-      };
-    } else if (effectiveFilter === 'OTHERS') {
-      whereProp = { assignedToId: { not: user.id } };
-      whereContact = { assignedToId: { not: user.id } };
-      whereActivity = {
-        OR: [
-          { userId: { not: user.id } },
-          { proposal: { assignedToId: { not: user.id } } },
-          { AND: [{ proposalId: null }, { contact: { assignedToId: { not: user.id } } }] },
-        ],
-      };
-    } else if (effectiveFilter === 'ALL') {
-      whereProp = {};
-      whereContact = {};
-      whereActivity = {};
-    } else {
-      // Un colaborador en específico (effectiveFilter = userId)
-      whereProp = { assignedToId: effectiveFilter };
-      whereContact = { assignedToId: effectiveFilter };
-      whereActivity = {
-        OR: [
-          { userId: effectiveFilter },
-          { proposal: { assignedToId: effectiveFilter } },
-          { AND: [{ proposalId: null }, { contact: { assignedToId: effectiveFilter } }] },
-        ],
-      };
-    }
+    const whereProp: any = { ...prismaFilter };
+    const whereContact: any = { ...prismaFilter };
 
     const now = new Date();
     const { endOfToday, endOfTomorrow } = getBusinessDayBoundaries();

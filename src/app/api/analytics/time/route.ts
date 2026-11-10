@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 import { getDaysDiff, getStalenessInfo } from '@/lib/timeUtils';
 
 export async function GET(req: Request) {
@@ -33,20 +33,13 @@ export async function GET(req: Request) {
       startDate.setMonth(now.getMonth() - 3);
     }
 
-    const isSalesperson = user.role !== 'ADMIN';
-    const effectiveAdvisorId = isSalesperson ? user.id : advisorId;
+    const { prismaFilter } = getEffectiveAdvisorFilter(user, advisorId);
 
-    // Contact scoping: strictly advisor's contacts if ASESOR or if filtered by admin
-    const contactWhere: any = {};
-    if (effectiveAdvisorId) {
-      contactWhere.assignedToId = effectiveAdvisorId;
-    }
+    // Contact scoping: strictly advisor's contacts if ASESOR or filtered by admin global filter
+    const contactWhere: any = { ...prismaFilter };
 
-    // Proposal scoping: strictly advisor's proposals if ASESOR or if filtered by admin
-    const proposalWhere: any = {};
-    if (effectiveAdvisorId) {
-      proposalWhere.assignedToId = effectiveAdvisorId;
-    }
+    // Proposal scoping: strictly advisor's proposals if ASESOR or filtered by admin global filter
+    const proposalWhere: any = { ...prismaFilter };
 
     // 1. Won Proposals (Ciclo Comercial de Cierre)
     const wonWhere: any = {

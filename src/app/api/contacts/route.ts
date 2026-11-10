@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getEffectiveAdvisorFilter } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
@@ -14,16 +14,14 @@ export async function GET(req: Request) {
     const companyId = searchParams.get('companyId');
     const search = searchParams.get('search');
 
-    const where: any = {};
+    const { prismaFilter } = getEffectiveAdvisorFilter(user, assignedToId);
+
+    const where: any = {
+      ...prismaFilter,
+    };
 
     if (companyId) {
       where.companyId = companyId;
-    }
-
-    if (user.role !== 'ADMIN') {
-      where.assignedToId = user.id;
-    } else if (assignedToId) {
-      where.assignedToId = assignedToId;
     }
 
     if (search) {
@@ -56,7 +54,7 @@ export async function GET(req: Request) {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
         proposals: {
-          where: user.role === 'ADMIN' ? {} : { assignedToId: user.id },
+          where: prismaFilter,
           select: {
             id: true,
             title: true,

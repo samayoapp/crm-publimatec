@@ -99,3 +99,93 @@ export async function getCurrentUser(): Promise<(UserSession & { phone?: string 
 }
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
+export const ADVISOR_FILTER_COOKIE = 'crm_advisor_filter';
+
+/**
+ * Determina el filtro de asesor efectivo para todas las consultas del CRM.
+ * - Para usuarios NO administradores (ASESOR): siempre filtra estrictamente por su propio user.id.
+ * - Para usuarios ADMIN: lee el parámetro explícito o la cookie global `crm_advisor_filter`
+ *   (siendo 'ME' el valor por defecto: ver solo lo propio).
+ *   Valores soportados para ADMIN:
+ *     - 'ME' (por defecto): solo registros asignados al ADMIN actual
+ *     - 'OTHERS': registros asignados a los demás colaboradores (excluyendo al ADMIN actual)
+ *     - 'ALL': todos los registros del equipo sin filtro de asignación
+ *     - '<userId>': registros asignados a un colaborador específico
+ */
+export function getEffectiveAdvisorFilter(
+  user: UserSession,
+  explicitParam?: string | null
+): {
+  rawFilter: string;
+  prismaFilter: Record<string, any>;
+  activityFilter: Record<string, any>;
+} {
+  if (user.role !== 'ADMIN') {
+    return {
+      rawFilter: 'ME',
+      prismaFilter: { assignedToId: user.id },
+      activityFilter: {
+        OR: [
+          { userId: user.id },
+          { proposal: { assignedToId: user.id } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
+        ],
+      },
+    };
+  }
+
+  const cookieStore = cookies();
+  const cookieVal = cookieStore.get(ADVISOR_FILTER_COOKIE)?.value;
+  const effective = (explicitParam && explicitParam.trim() !== '')
+    ? explicitParam.trim()
+    : (cookieVal && cookieVal.trim() !== '' ? cookieVal.trim() : 'ME');
+
+  if (effective === 'ME') {
+    return {
+      rawFilter: 'ME',
+      prismaFilter: { assignedToId: user.id },
+      activityFilter: {
+        OR: [
+          { userId: user.id },
+          { proposal: { assignedToId: user.id } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: user.id } }] },
+        ],
+      },
+    };
+  }
+
+  if (effective === 'OTHERS') {
+    return {
+      rawFilter: 'OTHERS',
+      prismaFilter: { assignedToId: { not: user.id } },
+      activityFilter: {
+        OR: [
+          { userId: { not: user.id } },
+          { proposal: { assignedToId: { not: user.id } } },
+          { AND: [{ proposalId: null }, { contact: { assignedToId: { not: user.id } } }] },
+        ],
+      },
+    };
+  }
+
+  if (effective === 'ALL') {
+    return {
+      rawFilter: 'ALL',
+      prismaFilter: {},
+      activityFilter: {},
+    };
+  }
+
+  // Colaborador específico (effective = userId)
+  return {
+    rawFilter: effective,
+    prismaFilter: { assignedToId: effective },
+    activityFilter: {
+      OR: [
+        { userId: effective },
+        { proposal: { assignedToId: effective } },
+        { AND: [{ proposalId: null }, { contact: { assignedToId: effective } }] },
+      ],
+    },
+  };
+}

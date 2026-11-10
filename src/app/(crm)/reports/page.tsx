@@ -50,6 +50,18 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReports(timePeriod, selectedAdvisor);
+
+    const handleGlobalFilter = () => {
+      fetchReports(timePeriod, selectedAdvisor);
+    };
+    window.addEventListener('crm-advisor-filter-changed', handleGlobalFilter);
+    window.addEventListener('crm-lead-saved', handleGlobalFilter);
+    window.addEventListener('crm-proposal-saved', handleGlobalFilter);
+    return () => {
+      window.removeEventListener('crm-advisor-filter-changed', handleGlobalFilter);
+      window.removeEventListener('crm-lead-saved', handleGlobalFilter);
+      window.removeEventListener('crm-proposal-saved', handleGlobalFilter);
+    };
   }, [timePeriod, selectedAdvisor]);
 
   const timeSummary = data?.summary || {
