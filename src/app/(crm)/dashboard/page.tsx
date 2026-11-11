@@ -88,7 +88,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    const currentFilter = crmCache.getAdvisorFilter();
+    const currentFilter = crmCache.restoreAdvisorFilter();
     setAdvisorFilter(currentFilter);
     const isBackground = !!data;
     fetchDashboard(isBackground, currentFilter);

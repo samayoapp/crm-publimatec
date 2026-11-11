@@ -37,8 +37,11 @@ const memoryStore: CacheStore = {
 const STALE_TIME = 45 * 1000;
 
 export const crmCache = {
-  // Current User
+  // Current User (SSR-safe: solo lee de memoria durante render; restaura de sessionStorage en useEffect)
   getUser(): any | null {
+    return memoryStore.currentUser;
+  },
+  restoreUser(): any | null {
     if (memoryStore.currentUser) return memoryStore.currentUser;
     if (typeof window !== 'undefined') {
       try {
@@ -61,8 +64,11 @@ export const crmCache = {
     }
   },
 
-  // Global Advisor Filter (para ADMIN: 'ME' por defecto, 'OTHERS', 'ALL', o ID de colaborador)
+  // Global Advisor Filter (SSR-safe: evita mismatch entre servidor y cliente durante hidratación)
   getAdvisorFilter(): string {
+    return memoryStore.advisorFilter || 'ME';
+  },
+  restoreAdvisorFilter(): string {
     if (typeof window !== 'undefined') {
       try {
         const match = document.cookie.match(/(?:^|;\s*)crm_advisor_filter=([^;]*)/);

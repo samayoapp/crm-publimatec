@@ -37,7 +37,7 @@ export default function Navbar({
   useEffect(() => {
     if (!isAdmin) return;
 
-    const initialFilter = crmCache.getAdvisorFilter();
+    const initialFilter = crmCache.restoreAdvisorFilter();
     setAdvisorFilter(initialFilter);
     // Asegurar que la cookie esté sincronizada desde el inicio
     crmCache.setAdvisorFilter(initialFilter);

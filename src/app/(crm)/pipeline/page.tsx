@@ -107,7 +107,7 @@ export default function PipelinePage() {
   };
 
   const fetchUser = () => {
-    const cachedUser = crmCache.getUser();
+    const cachedUser = crmCache.restoreUser();
     if (cachedUser) {
       setCurrentUser(cachedUser);
       return;
@@ -268,34 +268,14 @@ export default function PipelinePage() {
 
             <div className="hidden sm:block h-5 w-[1px] bg-slate-200 dark:bg-slate-750" />
 
-            {currentUser?.role === 'ADMIN' ? (
-              <>
-                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                  <Filter className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Filtrar:
-                  </span>
-                </div>
-
-                <select
-                  value={selectedAdvisor}
-                  onChange={(e) => setSelectedAdvisor(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 font-medium"
-                >
-                  <option value="">Todos los vendedores</option>
-                  {advisors.map((adv) => (
-                    <option key={adv.id} value={adv.id}>
-                      {adv.name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                Mis Oportunidades Asignadas
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>
+                {currentUser?.role === 'ADMIN'
+                  ? 'Sincronizado con Vista Global (Barra Superior)'
+                  : 'Mis Oportunidades Asignadas'}
               </span>
-            )}
+            </span>
           </div>
         </div>
       </div>

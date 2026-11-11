@@ -146,7 +146,7 @@ export default function ProposalsPage() {
   };
 
   const fetchUser = () => {
-    const cachedUser = crmCache.getUser();
+    const cachedUser = crmCache.restoreUser();
     if (cachedUser) {
       setCurrentUser(cachedUser);
       return;
@@ -410,30 +410,14 @@ export default function ProposalsPage() {
               </select>
             </div>
 
-            {/* Filter 2: Advisor (Solo Director/Admin) */}
-            {currentUser?.role === 'ADMIN' && advisors.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedAdvisor}
-                  onChange={(e) => setSelectedAdvisor(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 font-medium"
-                >
-                  <option value="">Todos los asesores</option>
-                  {advisors.map((adv) => (
-                    <option key={adv.id} value={adv.id}>
-                      {adv.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {currentUser?.role !== 'ADMIN' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                Mis Cotizaciones Asignadas
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>
+                {currentUser?.role === 'ADMIN'
+                  ? 'Sincronizado con Vista Global (Barra Superior)'
+                  : 'Mis Cotizaciones Asignadas'}
               </span>
-            )}
+            </span>
           </div>
 
           {/* Right Sub-Group: Sort Section + Clear Filters */}

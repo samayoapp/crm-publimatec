@@ -129,7 +129,7 @@ export default function CompaniesPage() {
   };
 
   const fetchUser = () => {
-    const cachedUser = crmCache.getUser();
+    const cachedUser = crmCache.restoreUser();
     if (cachedUser) {
       setCurrentUser(cachedUser);
       return;
