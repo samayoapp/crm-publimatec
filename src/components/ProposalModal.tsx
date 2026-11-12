@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip, ArrowRightLeft } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import ProposalDocumentsManager from '@/components/ProposalDocumentsManager';
-import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
+import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
 import { useSettings } from '@/lib/settingsContext';
 import { CURRENCIES, CurrencyCode } from '@/lib/currency';
 
@@ -110,10 +110,35 @@ export default function ProposalModal({
       return;
     }
 
+    const wasAlreadyWon =
+      proposalToEdit?.stage === 'GANADO' || proposalToEdit?.stage === 'VENTA';
+    const isNowWon = stage === 'GANADO' || stage === 'VENTA';
+
+    let confirmedMilestones: string[] | null = null;
+    if (isNowWon && !wasAlreadyWon) {
+      const selectedContactObj = contacts.find((c) => c.id === contactId);
+      confirmedMilestones = await requestWinConfirmation({
+        userName: currentUser?.name || proposalToEdit?.assignedTo?.name,
+        contactName: proposalToEdit?.contact?.name || selectedContactObj?.name || 'Cliente',
+        companyName:
+          proposalToEdit?.company?.name ||
+          proposalToEdit?.contact?.companyName ||
+          selectedContactObj?.companyName ||
+          null,
+        proposalTitle: title.trim(),
+        amount: parseFloat(amount) || 0,
+        currency: proposalCurrency,
+      });
+
+      if (!confirmedMilestones || confirmedMilestones.length === 0) {
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
-    const payload = {
+    const payload: any = {
       title: title.trim(),
       contactId,
       amount: parseFloat(amount) || 0,
@@ -122,6 +147,7 @@ export default function ProposalModal({
       notes: notes.trim() || null,
       assignedToId: assignedToId || null,
       companyId: defaultCompanyId || proposalToEdit?.companyId || null,
+      ...(confirmedMilestones ? { closingMilestones: confirmedMilestones } : {}),
     };
 
     try {
@@ -137,27 +163,6 @@ export default function ProposalModal({
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Error al guardar la propuesta');
-      }
-
-      const wasAlreadyWon =
-        proposalToEdit?.stage === 'GANADO' || proposalToEdit?.stage === 'VENTA';
-      const isNowWon = stage === 'GANADO' || stage === 'VENTA';
-
-      if (isNowWon && !wasAlreadyWon) {
-        const savedProp = data.proposal;
-        const selectedContactObj = contacts.find((c) => c.id === contactId);
-        triggerSaleCelebration({
-          userName: currentUser?.name || savedProp?.assignedTo?.name,
-          contactName: savedProp?.contact?.name || selectedContactObj?.name || 'Cliente',
-          companyName:
-            savedProp?.company?.name ||
-            savedProp?.contact?.companyName ||
-            selectedContactObj?.companyName ||
-            null,
-          proposalTitle: savedProp?.title || title.trim(),
-          amount: savedProp?.amount ?? (parseFloat(amount) || 0),
-          currency: savedProp?.currency || proposalCurrency,
-        });
       }
 
       window.dispatchEvent(new CustomEvent('crm-proposal-saved'));

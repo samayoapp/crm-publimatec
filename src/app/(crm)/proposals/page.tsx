@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
-import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
+import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import { useSettings } from '@/lib/settingsContext';
 
@@ -190,12 +190,10 @@ export default function ProposalsPage() {
       targetProposal?.stage === 'GANADO' || targetProposal?.stage === 'VENTA';
     const isNowWon = newStage === 'GANADO' || newStage === 'VENTA';
 
-    setProposals((prev) =>
-      prev.map((p) => (p.id === proposalId ? { ...p, stage: newStage } : p))
-    );
+    let confirmedMilestones: string[] | null = null;
 
     if (isNowWon && !wasAlreadyWon && targetProposal) {
-      triggerSaleCelebration({
+      confirmedMilestones = await requestWinConfirmation({
         userName: currentUser?.name || targetProposal.assignedTo?.name,
         contactName: targetProposal.contact?.name || 'Cliente',
         companyName:
@@ -207,13 +205,24 @@ export default function ProposalsPage() {
         amount: targetProposal.amount,
         currency: targetProposal.currency,
       });
+
+      if (!confirmedMilestones || confirmedMilestones.length === 0) {
+        return;
+      }
     }
+
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, stage: newStage } : p))
+    );
 
     try {
       await fetch(`/api/proposals/${proposalId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage }),
+        body: JSON.stringify({
+          stage: newStage,
+          ...(confirmedMilestones ? { closingMilestones: confirmedMilestones } : {}),
+        }),
       });
       fetchProposals();
     } catch (err) {

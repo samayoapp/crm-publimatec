@@ -29,7 +29,7 @@ import ActivityModal from '@/components/ActivityModal';
 import ScheduleModal from '@/components/ScheduleModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
-import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
+import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
 import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDiff } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 
@@ -109,8 +109,10 @@ export default function ContactDetailPage() {
       targetProp?.stage === 'GANADO' || targetProp?.stage === 'VENTA';
     const isNowWon = newStage === 'GANADO' || newStage === 'VENTA';
 
+    let confirmedMilestones: string[] | null = null;
+
     if (isNowWon && !wasAlreadyWon && targetProp) {
-      triggerSaleCelebration({
+      confirmedMilestones = await requestWinConfirmation({
         userName: currentUser?.name || contact?.assignedTo?.name,
         contactName: contact?.name || 'Cliente',
         companyName: contact?.company?.name || contact?.companyName || null,
@@ -118,13 +120,20 @@ export default function ContactDetailPage() {
         amount: targetProp.amount,
         currency: targetProp.currency,
       });
+
+      if (!confirmedMilestones || confirmedMilestones.length === 0) {
+        return;
+      }
     }
 
     try {
       await fetch(`/api/proposals/${propId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage }),
+        body: JSON.stringify({
+          stage: newStage,
+          ...(confirmedMilestones ? { closingMilestones: confirmedMilestones } : {}),
+        }),
       });
       fetchContact();
     } catch (err) {

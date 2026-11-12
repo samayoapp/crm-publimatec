@@ -163,8 +163,12 @@ export async function POST(req: Request) {
 
     // Record activity on contact
     const isSale = stage === 'VENTA' || stage === 'GANADO';
+    const milestonesSuffix =
+      isSale && Array.isArray(data.closingMilestones) && data.closingMilestones.length > 0
+        ? ` Hitos verificados: ${data.closingMilestones.join(', ')}.`
+        : '';
     const activityDesc = isSale
-      ? `🎉 ¡VENTA CERRADA! Propuesta "${proposal.title}" por ${proposal.currency} ${amount.toLocaleString()} aprobada.`
+      ? `🎉 ¡VENTA CERRADA! Propuesta "${proposal.title}" por ${proposal.currency} ${amount.toLocaleString()} aprobada.${milestonesSuffix}`
       : `Propuesta "${proposal.title}" por ${proposal.currency} ${amount.toLocaleString()} creada por ${user.name}.`;
 
     await prisma.activity.create({

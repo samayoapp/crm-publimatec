@@ -28,7 +28,7 @@ import {
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
-import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
+import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
 import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 import { crmCache } from '@/lib/crmCache';
@@ -200,13 +200,10 @@ export default function PipelinePage() {
       targetProposal?.stage === 'GANADO' || targetProposal?.stage === 'VENTA';
     const isNowWon = newStage === 'GANADO' || newStage === 'VENTA';
 
-    // Optimistic update
-    setProposals((prev) =>
-      prev.map((p) => (p.id === proposalId ? { ...p, stage: newStage } : p))
-    );
+    let confirmedMilestones: string[] | null = null;
 
     if (isNowWon && !wasAlreadyWon && targetProposal) {
-      triggerSaleCelebration({
+      confirmedMilestones = await requestWinConfirmation({
         userName: currentUser?.name || targetProposal.assignedTo?.name,
         contactName: targetProposal.contact?.name || 'Cliente',
         companyName:
@@ -218,13 +215,26 @@ export default function PipelinePage() {
         amount: targetProposal.amount,
         currency: targetProposal.currency,
       });
+
+      // Si el vendedor cancela la confirmación de hitos, la propuesta permanece abierta en su etapa actual
+      if (!confirmedMilestones || confirmedMilestones.length === 0) {
+        return;
+      }
     }
+
+    // Optimistic update (después de confirmar hitos si es GANADO)
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, stage: newStage } : p))
+    );
 
     try {
       await fetch(`/api/proposals/${proposalId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage }),
+        body: JSON.stringify({
+          stage: newStage,
+          ...(confirmedMilestones ? { closingMilestones: confirmedMilestones } : {}),
+        }),
       });
       fetchProposals();
     } catch (err) {

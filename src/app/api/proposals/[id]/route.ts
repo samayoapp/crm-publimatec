@@ -151,8 +151,12 @@ export async function PATCH(
       const newLabel = PROPOSAL_STAGES[data.stage]?.label || data.stage;
 
       const isWon = data.stage === 'VENTA' || data.stage === 'GANADO';
+      const milestonesSuffix =
+        isWon && Array.isArray(data.closingMilestones) && data.closingMilestones.length > 0
+          ? ` Hitos verificados: ${data.closingMilestones.join(', ')}.`
+          : '';
       const description = isWon
-        ? `🎉 ¡VENTA CERRADA! La propuesta "${updatedProposal.title}" fue aprobada por un valor de ${updatedProposal.currency || 'HNL'} ${updatedProposal.amount.toLocaleString()}.`
+        ? `🎉 ¡VENTA CERRADA! La propuesta "${updatedProposal.title}" fue aprobada por un valor de ${updatedProposal.currency || 'HNL'} ${updatedProposal.amount.toLocaleString()}.${milestonesSuffix}`
         : `Etapa de la propuesta actualizada de "${prevLabel}" a "${newLabel}".`;
 
       await prisma.activity.create({
