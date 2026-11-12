@@ -104,7 +104,8 @@ export default function SaleCelebrationModal({ defaultUserName }: { defaultUserN
 
   if (!celebration) return null;
 
-  const displayUser = celebration.userName || defaultUserName || 'Campeón Comercial';
+  const rawUser = (celebration.userName || defaultUserName || 'Campeón').trim();
+  const displayUser = rawUser.split(/\s+/)[0];
   const displayContact = celebration.contactName || 'el cliente';
   const displayCompany = celebration.companyName?.trim() || null;
   const displayProposal = celebration.proposalTitle || 'Propuesta Comercial';
@@ -137,6 +138,26 @@ export default function SaleCelebrationModal({ defaultUserName }: { defaultUserN
             transform: scale(1.18) rotate(8deg);
           }
         }
+        @keyframes modal-pop-from-depth {
+          0% {
+            opacity: 0;
+            transform: perspective(1000px) translateZ(-700px) scale(0.15) translateY(60px);
+          }
+          55% {
+            opacity: 1;
+            transform: perspective(1000px) translateZ(40px) scale(1.08) translateY(-10px);
+          }
+          75% {
+            transform: perspective(1000px) translateZ(-15px) scale(0.95) translateY(4px);
+          }
+          90% {
+            transform: perspective(1000px) translateZ(8px) scale(1.02) translateY(-2px);
+          }
+          100% {
+            opacity: 1;
+            transform: perspective(1000px) translateZ(0px) scale(1) translateY(0px);
+          }
+        }
       `}</style>
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-[101]">
@@ -159,10 +180,14 @@ export default function SaleCelebrationModal({ defaultUserName }: { defaultUserN
         ))}
       </div>
 
-      {/* Tarjeta Central de Celebración */}
+      {/* Tarjeta Central de Celebración con Efecto 3D Rebote desde el Fondo */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[102] w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border-2 border-amber-400/80 dark:border-amber-500/60 shadow-[0_0_70px_-10px_rgba(245,158,11,0.5)] overflow-hidden animate-in zoom-in-95 duration-300"
+        style={{
+          animation: 'modal-pop-from-depth 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+          transformOrigin: 'center center',
+        }}
+        className="relative z-[102] w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border-2 border-amber-400/80 dark:border-amber-500/60 shadow-[0_0_70px_-10px_rgba(245,158,11,0.5)] overflow-hidden"
       >
         {/* Banner Superior Festivo Dorado/Esmeralda */}
         <div className="relative bg-gradient-to-r from-emerald-600 via-teal-500 to-amber-500 px-6 pt-8 pb-6 text-center text-white overflow-hidden">

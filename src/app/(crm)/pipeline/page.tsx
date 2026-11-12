@@ -52,8 +52,57 @@ export default function PipelinePage() {
   const [search, setSearch] = useState('');
   const [selectedAdvisor, setSelectedAdvisor] = useState('');
 
+  // Trello-style Drag & Drop state
+  const [draggedProposalId, setDraggedProposalId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+
   // Horizontal scroll ref & controls
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, proposalId: string) => {
+    setDraggedProposalId(proposalId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', proposalId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedProposalId(null);
+    setDragOverStage(null);
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent<HTMLDivElement>, stageKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverStage !== stageKey) {
+      setDragOverStage(stageKey);
+    }
+
+    // Auto-scroll horizontal suave cuando se arrastra cerca de los bordes del tablero
+    if (scrollContainerRef.current) {
+      const rect = scrollContainerRef.current.getBoundingClientRect();
+      const edgeThreshold = 90;
+      if (e.clientX - rect.left < edgeThreshold) {
+        scrollContainerRef.current.scrollLeft -= 14;
+      } else if (rect.right - e.clientX < edgeThreshold) {
+        scrollContainerRef.current.scrollLeft += 14;
+      }
+    }
+  };
+
+  const handleColumnDrop = (e: React.DragEvent<HTMLDivElement>, targetStageKey: string) => {
+    e.preventDefault();
+    const propId = draggedProposalId || e.dataTransfer.getData('text/plain');
+    setDraggedProposalId(null);
+    setDragOverStage(null);
+
+    if (!propId) return;
+    const prop = proposals.find((p) => p.id === propId);
+    if (!prop) return;
+
+    if (!matchStage(prop.stage, targetStageKey)) {
+      updateStage(propId, targetStageKey);
+    }
+  };
 
   const scrollBoard = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -311,11 +360,30 @@ export default function PipelinePage() {
           const stageProps = proposals.filter((p) => matchStage(p.stage, stageKey));
           const totalVal = stageProps.reduce((acc, curr) => acc + convert(curr.amount || 0, curr.currency), 0);
           const isWonCol = stageKey === 'GANADO';
+          const isDropTarget = dragOverStage === stageKey;
 
           return (
             <div
               key={stageKey}
-              className={`w-[290px] min-w-[290px] xl:w-[310px] xl:min-w-[310px] shrink-0 bg-slate-100/70 dark:bg-[#0c1220] rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col border-t-[3px] ${config.headerBorder} transition-colors`}
+              onDragOver={(e) => handleColumnDragOver(e, stageKey)}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDragOverStage(stageKey);
+              }}
+              onDragLeave={(e) => {
+                // Solo limpiar si salimos realmente del contenedor de la columna
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverStage((prev) => (prev === stageKey ? null : prev));
+                }
+              }}
+              onDrop={(e) => handleColumnDrop(e, stageKey)}
+              className={`w-[290px] min-w-[290px] xl:w-[310px] xl:min-w-[310px] shrink-0 rounded-2xl border shadow-sm flex flex-col border-t-[3px] ${config.headerBorder} transition-all duration-150 ${
+                isDropTarget
+                  ? isWonCol
+                    ? 'bg-emerald-50/90 dark:bg-emerald-950/35 border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-500/40 scale-[1.01]'
+                    : 'bg-indigo-50/80 dark:bg-indigo-950/35 border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/40 scale-[1.01]'
+                  : 'bg-slate-100/70 dark:bg-[#0c1220] border-slate-200 dark:border-slate-800/80'
+              }`}
             >
               {/* Column Header */}
               <div className="p-3 border-b border-slate-200 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/40 rounded-t-xl flex items-center justify-between">
@@ -335,19 +403,39 @@ export default function PipelinePage() {
 
               {/* Cards List */}
               <div className="p-2 space-y-2.5 min-h-[450px] max-h-[calc(100vh-220px)] overflow-y-auto">
+                {isDropTarget && draggedProposalId && (
+                  <div
+                    className={`py-3 px-3 rounded-xl border-2 border-dashed text-center text-[11px] font-bold transition-all animate-pulse ${
+                      isWonCol
+                        ? 'border-emerald-400 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                        : 'border-indigo-400 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                    }`}
+                  >
+                    {isWonCol
+                      ? '🏆 Soltar aquí para ¡CERRAR VENTA GANADA!'
+                      : `Soltar aquí para pasar a ${config.label}`}
+                  </div>
+                )}
+
                 {stageProps.length === 0 ? (
                   <div className="text-center py-10 px-2 text-[11px] text-slate-400 dark:text-slate-600 border border-dashed border-slate-300/80 dark:border-slate-800/60 rounded-xl">
-                    Sin propuestas en esta etapa
+                    Arrastra una tarjeta aquí o crea una oportunidad
                   </div>
                 ) : (
                   stageProps.map((prop) => {
                     const isWon = prop.stage === 'GANADO' || prop.stage === 'VENTA';
+                    const isDraggingThis = draggedProposalId === prop.id;
 
                     return (
                       <div
                         key={prop.id}
-                        className={`bg-white dark:bg-slate-900 border rounded-xl p-3 shadow-sm hover:shadow-md transition-all flex flex-col gap-2 ${
-                          isWon
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, prop.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`bg-white dark:bg-slate-900 border rounded-xl p-3 shadow-sm hover:shadow-md transition-all flex flex-col gap-2 cursor-grab active:cursor-grabbing select-none ${
+                          isDraggingThis
+                            ? 'opacity-40 scale-[0.97] rotate-1 ring-2 ring-indigo-500 border-indigo-400'
+                            : isWon
                             ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/10'
                             : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40'
                         }`}
