@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import LeadModal from '@/components/LeadModal';
 import WelcomeModal from '@/components/WelcomeModal';
+import SaleCelebrationModal from '@/components/SaleCelebrationModal';
 import { SettingsProvider } from '@/lib/settingsContext';
 import { crmCache } from '@/lib/crmCache';
 
@@ -112,6 +113,8 @@ export default function CrmShell({ user, children }: CrmShellProps) {
           }}
           userName={user.name}
         />
+
+        <SaleCelebrationModal defaultUserName={user.name} />
       </div>
     </SettingsProvider>
   );

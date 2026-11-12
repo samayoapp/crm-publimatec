@@ -136,6 +136,9 @@ export async function PATCH(
         contact: {
           select: { id: true, name: true, companyName: true, phone: true },
         },
+        company: {
+          select: { id: true, name: true },
+        },
         assignedTo: {
           select: { id: true, name: true, email: true },
         },

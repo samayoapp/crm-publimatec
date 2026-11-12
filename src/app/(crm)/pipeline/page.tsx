@@ -28,6 +28,7 @@ import {
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
+import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
 import { getDaysDiff, formatFriendlyDate } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 import { crmCache } from '@/lib/crmCache';
@@ -145,10 +146,30 @@ export default function PipelinePage() {
   }, [search, selectedAdvisor, currentUser?.role]);
 
   const updateStage = async (proposalId: string, newStage: string) => {
+    const targetProposal = proposals.find((p) => p.id === proposalId);
+    const wasAlreadyWon =
+      targetProposal?.stage === 'GANADO' || targetProposal?.stage === 'VENTA';
+    const isNowWon = newStage === 'GANADO' || newStage === 'VENTA';
+
     // Optimistic update
     setProposals((prev) =>
       prev.map((p) => (p.id === proposalId ? { ...p, stage: newStage } : p))
     );
+
+    if (isNowWon && !wasAlreadyWon && targetProposal) {
+      triggerSaleCelebration({
+        userName: currentUser?.name || targetProposal.assignedTo?.name,
+        contactName: targetProposal.contact?.name || 'Cliente',
+        companyName:
+          targetProposal.company?.name ||
+          targetProposal.contact?.company?.name ||
+          targetProposal.contact?.companyName ||
+          null,
+        proposalTitle: targetProposal.title,
+        amount: targetProposal.amount,
+        currency: targetProposal.currency,
+      });
+    }
 
     try {
       await fetch(`/api/proposals/${proposalId}`, {

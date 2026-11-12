@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip, ArrowRightLeft } from 'lucide-react';
 import { STAGES, STAGE_KEYS } from '@/lib/constants';
 import ProposalDocumentsManager from '@/components/ProposalDocumentsManager';
+import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
 import { useSettings } from '@/lib/settingsContext';
 import { CURRENCIES, CurrencyCode } from '@/lib/currency';
 
@@ -136,6 +137,27 @@ export default function ProposalModal({
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Error al guardar la propuesta');
+      }
+
+      const wasAlreadyWon =
+        proposalToEdit?.stage === 'GANADO' || proposalToEdit?.stage === 'VENTA';
+      const isNowWon = stage === 'GANADO' || stage === 'VENTA';
+
+      if (isNowWon && !wasAlreadyWon) {
+        const savedProp = data.proposal;
+        const selectedContactObj = contacts.find((c) => c.id === contactId);
+        triggerSaleCelebration({
+          userName: currentUser?.name || savedProp?.assignedTo?.name,
+          contactName: savedProp?.contact?.name || selectedContactObj?.name || 'Cliente',
+          companyName:
+            savedProp?.company?.name ||
+            savedProp?.contact?.companyName ||
+            selectedContactObj?.companyName ||
+            null,
+          proposalTitle: savedProp?.title || title.trim(),
+          amount: savedProp?.amount ?? (parseFloat(amount) || 0),
+          currency: savedProp?.currency || proposalCurrency,
+        });
       }
 
       window.dispatchEvent(new CustomEvent('crm-proposal-saved'));

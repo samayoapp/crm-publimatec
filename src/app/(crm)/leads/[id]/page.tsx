@@ -29,6 +29,7 @@ import ActivityModal from '@/components/ActivityModal';
 import ScheduleModal from '@/components/ScheduleModal';
 import LeadModal from '@/components/LeadModal';
 import ProposalModal from '@/components/ProposalModal';
+import { triggerSaleCelebration } from '@/components/SaleCelebrationModal';
 import { getStalenessInfo, formatFriendlyDate, formatFriendlyDateTime, getDaysDiff } from '@/lib/timeUtils';
 import { useSettings } from '@/lib/settingsContext';
 
@@ -103,6 +104,22 @@ export default function ContactDetailPage() {
   };
 
   const handleUpdateProposalStage = async (propId: string, newStage: string) => {
+    const targetProp = contact?.proposals?.find((p: any) => p.id === propId);
+    const wasAlreadyWon =
+      targetProp?.stage === 'GANADO' || targetProp?.stage === 'VENTA';
+    const isNowWon = newStage === 'GANADO' || newStage === 'VENTA';
+
+    if (isNowWon && !wasAlreadyWon && targetProp) {
+      triggerSaleCelebration({
+        userName: currentUser?.name || contact?.assignedTo?.name,
+        contactName: contact?.name || 'Cliente',
+        companyName: contact?.company?.name || contact?.companyName || null,
+        proposalTitle: targetProp.title,
+        amount: targetProp.amount,
+        currency: targetProp.currency,
+      });
+    }
+
     try {
       await fetch(`/api/proposals/${propId}`, {
         method: 'PATCH',
