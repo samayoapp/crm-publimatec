@@ -255,6 +255,8 @@ export async function GET(request: Request) {
         activeCount: activeProposals.length,
         activeProposalsCount: activeProposals.length,
         pipelineValue,
+        negotiationCount: stageCounts.NEGOCIACION.count,
+        negotiationValue: stageCounts.NEGOCIACION.value,
         wonCount: wonSales.length,
         wonSalesCount: wonSales.length,
         wonValue: wonSalesValue,

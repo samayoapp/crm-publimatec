@@ -799,15 +799,23 @@ export default function DashboardPage() {
           <span className="text-[10px] text-slate-400 block mt-1">Prospectos activos en embudo</span>
         </div>
 
-        {/* Tarjeta 3: EN NEGOCIACIÓN */}
+        {/* Tarjeta 3: EN NEGOCIACIÓN (SOLO ETAPA NEGOCIACION DEL EMBUDO) */}
         <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 transition-colors">
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
             En Negociación
           </span>
           <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1 truncate">
-            {formatMoney(summary?.pipelineValue || 0, summary?.currency || currency)}
+            {formatMoney(
+              summary?.negotiationValue ?? data?.stageCounts?.NEGOCIACION?.value ?? 0,
+              summary?.currency || currency
+            )}
           </div>
-          <span className="text-[10px] text-slate-400 block mt-1">{currency} en juego en cotizaciones</span>
+          <span className="text-[10px] text-slate-400 block mt-1">
+            {summary?.negotiationCount ?? data?.stageCounts?.NEGOCIACION?.count ?? 0}{' '}
+            {(summary?.negotiationCount ?? data?.stageCounts?.NEGOCIACION?.count ?? 0) === 1
+              ? 'propuesta en etapa Negociación'
+              : 'propuestas en etapa Negociación'}
+          </span>
         </div>
 
         {/* Tarjeta 4: CERRADOS GANADOS */}
