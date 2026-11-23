@@ -189,3 +189,129 @@ export function parseQuote(raw: any): MotivationalQuote {
 
 export const DEFAULT_MOTIVATIONAL_QUOTES: string[] = RAW_DEFAULT_QUOTES.map(serializeQuote);
 
+export interface PipelineLabel {
+  id: string;
+  name: string;
+  color: string; // 'emerald' | 'blue' | 'amber' | 'rose' | 'purple' | 'cyan' | 'slate' | 'pink'
+}
+
+export interface LabelColorConfig {
+  key: string;
+  name: string;
+  hex: string;
+  dotClass: string;
+  badgeClass: string;
+  cardBorderClass: string;
+  cardBgClass: string;
+  swatchClass: string;
+}
+
+export const PIPELINE_LABEL_COLORS: Record<string, LabelColorConfig> = {
+  emerald: {
+    key: 'emerald',
+    name: 'Verde Esmeralda',
+    hex: '#10b981',
+    dotClass: 'bg-emerald-500',
+    badgeClass:
+      'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white border-emerald-600 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-emerald-500 border-emerald-300 dark:border-emerald-500/50',
+    cardBgClass: 'bg-emerald-50/70 dark:bg-emerald-950/25',
+    swatchClass: 'bg-emerald-500 text-white ring-emerald-500/40',
+  },
+  blue: {
+    key: 'blue',
+    name: 'Azul Intenso',
+    hex: '#2563eb',
+    dotClass: 'bg-blue-600',
+    badgeClass:
+      'bg-blue-600 text-white dark:bg-blue-500 dark:text-white border-blue-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-blue-600 border-blue-300 dark:border-blue-500/60',
+    cardBgClass: 'bg-blue-50/80 dark:bg-blue-950/30',
+    swatchClass: 'bg-blue-600 text-white ring-blue-500/40',
+  },
+  amber: {
+    key: 'amber',
+    name: 'Ámbar / Naranja',
+    hex: '#f59e0b',
+    dotClass: 'bg-amber-500',
+    badgeClass:
+      'bg-amber-500 text-white dark:bg-amber-500 dark:text-slate-950 border-amber-600 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-amber-500 border-amber-300 dark:border-amber-500/50',
+    cardBgClass: 'bg-amber-50/80 dark:bg-amber-950/25',
+    swatchClass: 'bg-amber-500 text-white ring-amber-500/40',
+  },
+  rose: {
+    key: 'rose',
+    name: 'Rojo / Coral',
+    hex: '#f43f5e',
+    dotClass: 'bg-rose-600',
+    badgeClass:
+      'bg-rose-600 text-white dark:bg-rose-500 dark:text-white border-rose-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-rose-600 border-rose-300 dark:border-rose-500/50',
+    cardBgClass: 'bg-rose-50/80 dark:bg-rose-950/25',
+    swatchClass: 'bg-rose-600 text-white ring-rose-500/40',
+  },
+  purple: {
+    key: 'purple',
+    name: 'Morado / Violeta',
+    hex: '#9333ea',
+    dotClass: 'bg-purple-600',
+    badgeClass:
+      'bg-purple-600 text-white dark:bg-purple-500 dark:text-white border-purple-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-purple-600 border-purple-300 dark:border-purple-500/50',
+    cardBgClass: 'bg-purple-50/80 dark:bg-purple-950/25',
+    swatchClass: 'bg-purple-600 text-white ring-purple-500/40',
+  },
+  cyan: {
+    key: 'cyan',
+    name: 'Cian / Turquesa',
+    hex: '#0891b2',
+    dotClass: 'bg-cyan-600',
+    badgeClass:
+      'bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950 border-cyan-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-cyan-500 border-cyan-300 dark:border-cyan-500/50',
+    cardBgClass: 'bg-cyan-50/80 dark:bg-cyan-950/25',
+    swatchClass: 'bg-cyan-500 text-white ring-cyan-500/40',
+  },
+  pink: {
+    key: 'pink',
+    name: 'Rosa / Magenta',
+    hex: '#db2777',
+    dotClass: 'bg-pink-600',
+    badgeClass:
+      'bg-pink-600 text-white dark:bg-pink-500 dark:text-white border-pink-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-pink-600 border-pink-300 dark:border-pink-500/60',
+    cardBgClass: 'bg-pink-50/80 dark:bg-pink-950/30',
+    swatchClass: 'bg-pink-600 text-white ring-pink-500/40',
+  },
+  slate: {
+    key: 'slate',
+    name: 'Gris / Archivo',
+    hex: '#64748b',
+    dotClass: 'bg-slate-600',
+    badgeClass:
+      'bg-slate-600 text-white dark:bg-slate-600 dark:text-white border-slate-700 shadow-xs',
+    cardBorderClass: 'border-l-[6px] border-l-slate-500 border-slate-300 dark:border-slate-600',
+    cardBgClass: 'bg-slate-100/80 dark:bg-slate-900/70',
+    swatchClass: 'bg-slate-500 text-white ring-slate-500/40',
+  },
+};
+
+export const PIPELINE_LABEL_COLOR_KEYS = Object.keys(PIPELINE_LABEL_COLORS);
+
+export function getPipelineLabelColorConfig(color?: string | null): LabelColorConfig {
+  if (color && PIPELINE_LABEL_COLORS[color]) {
+    return PIPELINE_LABEL_COLORS[color];
+  }
+  return PIPELINE_LABEL_COLORS.blue;
+}
+
+export const DEFAULT_PIPELINE_LABELS: PipelineLabel[] = [
+  { id: 'casi-cierre', name: 'CASI AL CIERRE', color: 'emerald' },
+  { id: 'interesados', name: 'INTERESADOS', color: 'blue' },
+  { id: 'empujoncito', name: 'UN EMPUJONCITO', color: 'amber' },
+  { id: 'requiere-intervencion', name: 'REQUIERE INTERVENCIÓN', color: 'rose' },
+  { id: 'archivar-eliminar', name: 'ARCHIVAR / DESCARTAR', color: 'slate' },
+];
+
+

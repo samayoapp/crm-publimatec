@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip, ArrowRightLeft } from 'lucide-react';
-import { STAGES, STAGE_KEYS } from '@/lib/constants';
+import { X, FileText, User, DollarSign, Sparkles, Trash2, Lock, Paperclip, ArrowRightLeft, Tag } from 'lucide-react';
+import {
+  STAGES,
+  STAGE_KEYS,
+  DEFAULT_PIPELINE_LABELS,
+  PipelineLabel,
+  getPipelineLabelColorConfig,
+} from '@/lib/constants';
 import ProposalDocumentsManager from '@/components/ProposalDocumentsManager';
 import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
 import { useSettings } from '@/lib/settingsContext';
@@ -54,6 +60,8 @@ export default function ProposalModal({
   const [amount, setAmount] = useState('');
   const [proposalCurrency, setProposalCurrency] = useState('HNL');
   const [stage, setStage] = useState('NUEVO');
+  const [labelId, setLabelId] = useState<string>('');
+  const [pipelineLabels, setPipelineLabels] = useState<PipelineLabel[]>(DEFAULT_PIPELINE_LABELS);
   const [notes, setNotes] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
@@ -75,6 +83,16 @@ export default function ProposalModal({
           if (data.team) setAdvisors(data.team);
         })
         .catch((err) => console.error(err));
+
+      // Fetch pipeline labels configured in settings
+      fetch('/api/settings')
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.settings?.pipelineLabels) && data.settings.pipelineLabels.length > 0) {
+            setPipelineLabels(data.settings.pipelineLabels);
+          }
+        })
+        .catch(() => {});
     }
   }, [isOpen]);
 
@@ -86,6 +104,7 @@ export default function ProposalModal({
       setProposalCurrency(proposalToEdit.currency || currency || 'HNL');
       const rawStage = proposalToEdit.stage;
       setStage(rawStage === 'ENVIADA' ? 'PROPUESTA' : (rawStage || 'NUEVO'));
+      setLabelId(proposalToEdit.labelId || '');
       setNotes(proposalToEdit.notes || '');
       setAssignedToId(proposalToEdit.assignedToId || proposalToEdit.assignedTo?.id || '');
     } else {
@@ -94,6 +113,7 @@ export default function ProposalModal({
       setAmount('');
       setProposalCurrency(currency || 'HNL');
       setStage('NUEVO');
+      setLabelId('');
       setNotes('');
       setAssignedToId(currentUser?.id || '');
     }
@@ -144,6 +164,7 @@ export default function ProposalModal({
       amount: parseFloat(amount) || 0,
       currency: proposalCurrency,
       stage,
+      labelId: labelId || null,
       notes: notes.trim() || null,
       assignedToId: assignedToId || null,
       companyId: defaultCompanyId || proposalToEdit?.companyId || null,
@@ -408,6 +429,50 @@ export default function ProposalModal({
               </div>
             </div>
           )}
+
+          {/* Etiqueta de Color (Una sola etiqueta por tarjeta para mantener enfoque) */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Etiqueta de Prioridad / Código de Color (Opcional)</span>
+              </span>
+              {labelId && (
+                <button
+                  type="button"
+                  onClick={() => setLabelId('')}
+                  className="text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                >
+                  Quitar etiqueta
+                </button>
+              )}
+            </label>
+            <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80">
+              {pipelineLabels.map((lbl) => {
+                const cCfg = getPipelineLabelColorConfig(lbl.color);
+                const isSelected = labelId === lbl.id;
+                return (
+                  <button
+                    key={lbl.id}
+                    type="button"
+                    onClick={() => setLabelId(isSelected ? '' : lbl.id)}
+                    style={isSelected ? { backgroundColor: cCfg.hex, borderColor: cCfg.hex } : undefined}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'text-white ring-2 ring-indigo-500/40 scale-[1.03] shadow-sm'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 opacity-85 hover:opacity-100'
+                    }`}
+                  >
+                    <span
+                      style={{ backgroundColor: isSelected ? '#ffffff' : cCfg.hex }}
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                    />
+                    <span>{lbl.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Vendedor Asignado */}
           <div>

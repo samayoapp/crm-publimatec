@@ -24,8 +24,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  Tag,
 } from 'lucide-react';
-import { STAGES, STAGE_KEYS } from '@/lib/constants';
+import {
+  STAGES,
+  STAGE_KEYS,
+  DEFAULT_PIPELINE_LABELS,
+  PipelineLabel,
+  getPipelineLabelColorConfig,
+} from '@/lib/constants';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import ProposalModal from '@/components/ProposalModal';
 import { requestWinConfirmation } from '@/components/SaleCelebrationModal';
@@ -51,6 +58,9 @@ export default function PipelinePage() {
   // Filters
   const [search, setSearch] = useState('');
   const [selectedAdvisor, setSelectedAdvisor] = useState('');
+  const [selectedLabelFilter, setSelectedLabelFilter] = useState<string>('');
+  const [pipelineLabels, setPipelineLabels] = useState<PipelineLabel[]>(DEFAULT_PIPELINE_LABELS);
+  const [activeLabelPickerId, setActiveLabelPickerId] = useState<string | null>(null);
 
   // Trello-style Drag & Drop state
   const [draggedProposalId, setDraggedProposalId] = useState<string | null>(null);
@@ -173,9 +183,39 @@ export default function PipelinePage() {
       .catch((err) => console.error(err));
   };
 
+  const fetchPipelineLabels = () => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.settings?.pipelineLabels) && data.settings.pipelineLabels.length > 0) {
+          setPipelineLabels(data.settings.pipelineLabels);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const updateProposalLabel = async (proposalId: string, newLabelId: string | null) => {
+    setActiveLabelPickerId(null);
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, labelId: newLabelId } : p))
+    );
+    try {
+      await fetch(`/api/proposals/${proposalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labelId: newLabelId }),
+      });
+      crmCache.invalidate('proposals');
+    } catch (err) {
+      console.error(err);
+      fetchProposals();
+    }
+  };
+
   useEffect(() => {
     fetchAdvisors();
     fetchUser();
+    fetchPipelineLabels();
   }, []);
 
   useEffect(() => {
@@ -324,38 +364,97 @@ export default function PipelinePage() {
           </div>
         </div>
 
-        {/* Tier 2: Search & Advisor Filter Bar */}
-        <div className="p-3 bg-white/60 dark:bg-slate-900/40 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1">
-            <div className="relative min-w-[220px] max-w-sm flex-1">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar prospecto, cliente o propuesta..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 pl-8 pr-7 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+        {/* Tier 2: Search & Color Label Filter Bar */}
+        <div className="p-3 bg-white/60 dark:bg-slate-900/40 flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              <div className="relative min-w-[220px] max-w-sm flex-1">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar prospecto, cliente o propuesta..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 pl-8 pr-7 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="hidden sm:block h-5 w-[1px] bg-slate-200 dark:bg-slate-750" />
+
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                <span>
+                  {currentUser?.role === 'ADMIN'
+                    ? 'Sincronizado con Vista Global (Barra Superior)'
+                    : 'Mis Oportunidades Asignadas'}
+                </span>
+              </span>
             </div>
 
-            <div className="hidden sm:block h-5 w-[1px] bg-slate-200 dark:bg-slate-750" />
+            {currentUser?.role === 'ADMIN' && (
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
+                title="Configurar nombres y colores de etiquetas en Ajustes"
+              >
+                <Tag className="w-3 h-3" />
+                <span>Personalizar etiquetas</span>
+              </Link>
+            )}
+          </div>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-              <span>
-                {currentUser?.role === 'ADMIN'
-                  ? 'Sincronizado con Vista Global (Barra Superior)'
-                  : 'Mis Oportunidades Asignadas'}
-              </span>
+          {/* Barra de Filtro Rápido por Etiqueta de Color */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1">
+              <Tag className="w-3 h-3 text-indigo-500" />
+              <span>Etiquetas:</span>
             </span>
+
+            <button
+              type="button"
+              onClick={() => setSelectedLabelFilter('')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase border transition-all cursor-pointer ${
+                selectedLabelFilter === ''
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+              }`}
+            >
+              Todas ({proposals.length})
+            </button>
+
+            {pipelineLabels.map((lbl) => {
+              const cCfg = getPipelineLabelColorConfig(lbl.color);
+              const count = proposals.filter((p) => p.labelId === lbl.id).length;
+              const isSelected = selectedLabelFilter === lbl.id;
+              return (
+                <button
+                  key={lbl.id}
+                  type="button"
+                  onClick={() => setSelectedLabelFilter(isSelected ? '' : lbl.id)}
+                  style={isSelected ? { backgroundColor: cCfg.hex, borderColor: cCfg.hex } : undefined}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border transition-all cursor-pointer ${
+                    isSelected
+                      ? 'text-white ring-2 ring-indigo-500/40 scale-[1.03] shadow-sm'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 opacity-90 hover:opacity-100'
+                  }`}
+                >
+                  <span
+                    style={{ backgroundColor: isSelected ? '#ffffff' : cCfg.hex }}
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                  />
+                  <span>{lbl.name}</span>
+                  <span className={isSelected ? 'opacity-90' : 'opacity-70'}>({count})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -367,7 +466,11 @@ export default function PipelinePage() {
       >
         {STAGE_KEYS.map((stageKey, colIndex) => {
           const config = STAGES[stageKey];
-          const stageProps = proposals.filter((p) => matchStage(p.stage, stageKey));
+          const stageProps = proposals.filter((p) => {
+            if (!matchStage(p.stage, stageKey)) return false;
+            if (selectedLabelFilter) return p.labelId === selectedLabelFilter;
+            return true;
+          });
           const totalVal = stageProps.reduce((acc, curr) => acc + convert(curr.amount || 0, curr.currency), 0);
           const isWonCol = stageKey === 'GANADO';
           const isDropTarget = dragOverStage === stageKey;
@@ -435,6 +538,12 @@ export default function PipelinePage() {
                   stageProps.map((prop) => {
                     const isWon = prop.stage === 'GANADO' || prop.stage === 'VENTA';
                     const isDraggingThis = draggedProposalId === prop.id;
+                    const activeLabel = prop.labelId
+                      ? pipelineLabels.find((l) => l.id === prop.labelId) || null
+                      : null;
+                    const labelColorCfg = activeLabel
+                      ? getPipelineLabelColorConfig(activeLabel.color)
+                      : null;
 
                     return (
                       <div
@@ -442,14 +551,111 @@ export default function PipelinePage() {
                         draggable
                         onDragStart={(e) => handleDragStart(e, prop.id)}
                         onDragEnd={handleDragEnd}
-                        className={`bg-white dark:bg-slate-900 border rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col gap-2.5 cursor-grab active:cursor-grabbing select-none ${
+                        style={
+                          labelColorCfg
+                            ? { borderLeftWidth: '6px', borderLeftColor: labelColorCfg.hex }
+                            : undefined
+                        }
+                        className={`relative border rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col gap-2 cursor-grab active:cursor-grabbing select-none ${
                           isDraggingThis
-                            ? 'opacity-40 scale-[0.97] rotate-1 ring-2 ring-indigo-500 border-indigo-400'
+                            ? 'opacity-40 scale-[0.97] rotate-1 ring-2 ring-indigo-500 border-indigo-400 bg-white dark:bg-slate-900'
+                            : labelColorCfg
+                            ? `${labelColorCfg.cardBorderClass} ${labelColorCfg.cardBgClass}`
                             : isWon
                             ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/10'
-                            : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40'
                         }`}
                       >
+                        {/* 0. Etiqueta de Color (1 sola por tarjeta, con selector rápido en 1 clic) */}
+                        <div className="flex items-center justify-between gap-2 relative">
+                          {activeLabel && labelColorCfg ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveLabelPickerId((prev) => (prev === prop.id ? null : prop.id));
+                              }}
+                              style={{ backgroundColor: labelColorCfg.hex }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider text-white shadow-sm hover:brightness-110 transition-all cursor-pointer"
+                              title="Clic para cambiar o quitar etiqueta"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
+                              <span>{activeLabel.name}</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveLabelPickerId((prev) => (prev === prop.id ? null : prop.id));
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                              title="Asignar etiqueta de color"
+                            >
+                              <Tag className="w-2.5 h-2.5" />
+                              <span>+ Etiqueta</span>
+                            </button>
+                          )}
+
+                          {/* Menú flotante rápido para elegir 1 etiqueta */}
+                          {activeLabelPickerId === prop.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute top-6 left-0 z-30 w-56 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150"
+                            >
+                              <div className="flex items-center justify-between px-1.5 pb-1 border-b border-slate-100 dark:border-slate-800">
+                                <span className="text-[10px] font-black uppercase text-slate-400">
+                                  Elegir Etiqueta
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveLabelPickerId(null)}
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              {pipelineLabels.map((lbl) => {
+                                const cCfg = getPipelineLabelColorConfig(lbl.color);
+                                const isCurrent = prop.labelId === lbl.id;
+                                return (
+                                  <button
+                                    key={lbl.id}
+                                    type="button"
+                                    onClick={() => updateProposalLabel(prop.id, isCurrent ? null : lbl.id)}
+                                    style={isCurrent ? { backgroundColor: cCfg.hex } : undefined}
+                                    className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center justify-between transition-colors cursor-pointer ${
+                                      isCurrent
+                                        ? 'text-white shadow-xs'
+                                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2 truncate">
+                                      <span
+                                        style={{ backgroundColor: isCurrent ? '#ffffff' : cCfg.hex }}
+                                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                                      />
+                                      <span className="truncate">{lbl.name}</span>
+                                    </span>
+                                    {isCurrent && <CheckCircle2 className="w-3 h-3 shrink-0" />}
+                                  </button>
+                                );
+                              })}
+
+                              {prop.labelId && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateProposalLabel(prop.id, null)}
+                                  className="w-full text-center pt-1 mt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                                >
+                                  Quitar etiqueta
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
                         {/* 1. Cabecera: Nombre de la Propuesta + Monto */}
                         <div className="flex items-start justify-between gap-2">
                           <h4

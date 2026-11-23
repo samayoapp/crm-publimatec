@@ -143,6 +143,7 @@ export async function POST(req: Request) {
         amount,
         currency,
         stage,
+        labelId: data.labelId ? String(data.labelId).trim() : null,
         notes: data.notes ? data.notes.trim() : null,
         contactId: data.contactId,
         companyId,

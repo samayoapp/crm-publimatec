@@ -100,6 +100,7 @@ export async function PATCH(
     if (data.title !== undefined) updateData.title = data.title.trim();
     if (data.amount !== undefined) updateData.amount = parseFloat(data.amount) || 0;
     if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.labelId !== undefined) updateData.labelId = data.labelId ? String(data.labelId).trim() : null;
     if (data.assignedToId !== undefined) {
       if (user.role !== 'ADMIN') {
         return NextResponse.json(

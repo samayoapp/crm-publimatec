@@ -86,6 +86,7 @@ model Proposal {
   amount         Float      @default(0) // Valor numérico
   currency       String     @default("USD")
   stage          String     @default("ENVIADA") // "NUEVO", "CONTACTADO", "PROPUESTA", "NEGOCIACION", "GANADO", "PERDIDO"
+  labelId        String?    // ID de la etiqueta de color del embudo (una sola etiqueta por tarjeta)
   notes          String?    // Alcances o detalles de la propuesta
   contactId      String
   contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -137,6 +138,7 @@ model Setting {
   logoUrl            String?
   monthlySalesTarget Float    @default(15000)
   motivationalQuotes String[] @default([])
+  pipelineLabels     Json?
   exchangeRates      Json?
   ratesUpdatedAt     DateTime?
   updatedAt          DateTime @updatedAt

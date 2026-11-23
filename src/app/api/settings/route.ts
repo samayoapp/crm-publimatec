@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { DEFAULT_MOTIVATIONAL_QUOTES } from '@/lib/constants';
+import { DEFAULT_MOTIVATIONAL_QUOTES, DEFAULT_PIPELINE_LABELS } from '@/lib/constants';
 
 export async function GET() {
   try {
@@ -27,14 +27,23 @@ export async function GET() {
           address: 'San Pedro Sula, Cortés, Honduras',
           monthlySalesTarget: 15000,
           motivationalQuotes: DEFAULT_MOTIVATIONAL_QUOTES,
+          pipelineLabels: DEFAULT_PIPELINE_LABELS as any,
         },
       });
-    } else if (!settings.motivationalQuotes || settings.motivationalQuotes.length === 0) {
-      // Initialize with defaults if empty
-      settings = await prisma.setting.update({
-        where: { id: 'default' },
-        data: { motivationalQuotes: DEFAULT_MOTIVATIONAL_QUOTES },
-      });
+    } else {
+      const updates: any = {};
+      if (!settings.motivationalQuotes || settings.motivationalQuotes.length === 0) {
+        updates.motivationalQuotes = DEFAULT_MOTIVATIONAL_QUOTES;
+      }
+      if (!Array.isArray(settings.pipelineLabels) || (settings.pipelineLabels as any[]).length === 0) {
+        updates.pipelineLabels = DEFAULT_PIPELINE_LABELS;
+      }
+      if (Object.keys(updates).length > 0) {
+        settings = await prisma.setting.update({
+          where: { id: 'default' },
+          data: updates,
+        });
+      }
     }
 
     return NextResponse.json({ settings });
@@ -67,6 +76,15 @@ export async function PATCH(req: Request) {
       updateData.motivationalQuotes = data.motivationalQuotes
         .map((q: any) => String(q).trim())
         .filter((q: string) => q.length > 0);
+    }
+    if (Array.isArray(data.pipelineLabels)) {
+      updateData.pipelineLabels = data.pipelineLabels
+        .filter((l: any) => l && typeof l.name === 'string' && l.name.trim().length > 0)
+        .map((l: any) => ({
+          id: String(l.id || l.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')),
+          name: String(l.name).trim().toUpperCase(),
+          color: String(l.color || 'blue'),
+        }));
     }
 
     const settings = await prisma.setting.upsert({
